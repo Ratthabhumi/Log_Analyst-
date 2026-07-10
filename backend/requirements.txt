@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+sqlalchemy
+psycopg2-binary
+pytesseract
+Pillow
+duckduckgo-search
+python-dotenv
