@@ -1,6 +1,7 @@
 import io
 import re
 import defusedxml.ElementTree as ET
+from xml.etree.ElementTree import Element
 
 NS = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
 
@@ -13,7 +14,7 @@ LEVEL_MAP = {
 }
 
 
-def _text(elem: ET.Element | None) -> str:
+def _text(elem: Element | None) -> str:
     return (elem.text or "").strip() if elem is not None else ""
 
 
