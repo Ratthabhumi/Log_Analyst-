@@ -1,6 +1,22 @@
-version: '3.8'
-
 services:
+  backend:
+    build:
+      context: ./backend
+    container_name: eventiq_backend
+    environment:
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: P@ssw0rd
+      JWT_SECRET: eventiq-local-dev-secret
+      JWT_EXPIRE_HOURS: 24
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      DATABASE_URL: postgresql://admin:password@db:5432/eventiq
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    restart: unless-stopped
+
   db:
     image: ankane/pgvector:latest
     container_name: eventiq_db

@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1,
+    "name": "Event ID 1000 - AcerQAAgent",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "Acer"
+  },
+  {
+    "id": 2,
+    "name": "Event ID 10016 - DCOM Error",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "DCOM"
+  },
+  {
+    "id": 3,
+    "name": "Event ID 41 - Kernel-Power",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "power"
+  },
+  {
+    "id": 4,
+    "name": "Event ID 4625 - Failed Login",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "security"
+  },
+  {
+    "id": 5,
+    "name": "Event ID 1000 - NVIDIA Driver",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "nvidia"
+  },
+  {
+    "id": 6,
+    "name": "Event ID 1000 - AMD Driver",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "amd"
+  },
+  {
+    "id": 7,
+    "name": "Event ID 1000 - Antivirus",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "antivirus"
+  },
+  {
+    "id": 8,
+    "name": "Incomplete Format",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "1000"
+  },
+  {
+    "id": 9,
+    "name": "Minimal Format",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "1000"
+  },
+  {
+    "id": 10,
+    "name": "Event ID 6008 - Unexpected Shutdown",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "shutdown"
+  },
+  {
+    "id": 11,
+    "name": "Event ID 7031 - Service Crash",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "service"
+  },
+  {
+    "id": 12,
+    "name": "Event ID 1001 - WER",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "wer"
+  },
+  {
+    "id": 13,
+    "name": "English Language",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "1000"
+  },
+  {
+    "id": 14,
+    "name": "Event ID 1022 - .NET Runtime",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": ".net"
+  },
+  {
+    "id": 15,
+    "name": "XML Format",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "1000"
+  },
+  {
+    "id": 16,
+    "name": "Multiple Faulting Apps",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "svchost"
+  },
+  {
+    "id": 17,
+    "name": "Unknown Event ID",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "99999"
+  },
+  {
+    "id": 18,
+    "name": "Critical Level",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "critical"
+  },
+  {
+    "id": 19,
+    "name": "Special Characters",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "1000"
+  },
+  {
+    "id": 20,
+    "name": "Empty Input",
+    "status": "\u2705 PASS",
+    "message": "Success",
+    "expected": "error"
+  }
+]

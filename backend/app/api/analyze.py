@@ -1,112 +1,149 @@
-from fastapi import APIRouter, File, UploadFile, Form
-from pydantic import BaseModel
-from typing import Optional, List
-import re
+from fastapi import APIRouter, File, UploadFile, Form, Depends
+from typing import Optional
+from sqlalchemy.orm import Session
 import io
+import time
+import xml.etree.ElementTree as ET
+
+from app.core.auth import get_current_user
+from app.core.database import get_db
+from app.models.history import AnalysisHistory
+from app.schemas.analyze import AnalyzeResponse, FollowUpRequest, FollowUpResponse
+from app.services.parser import parse_event_metadata
+from app.services.evtx_parser import parse_evtx
+from app.services.summary import (
+    search_solutions,
+    build_summary,
+    format_summary_text,
+    build_followup_answer,
+)
+
 try:
     from PIL import Image
     import pytesseract
 except ImportError:
     pass
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import unquote
-import xml.etree.ElementTree as ET
 
 router = APIRouter()
 
-class SearchResult(BaseModel):
-    title: str
-    link: str
 
-class AnalyzeResponse(BaseModel):
-    eventId: str
-    provider: str
-    description: str
-    searchResults: List[SearchResult]
+def _process_upload(content: bytes, filename: str, content_type: str | None) -> tuple[str, str]:
+    lower_name = (filename or "").lower()
+
+    if content_type and content_type.startswith("image/"):
+        try:
+            img = Image.open(io.BytesIO(content))
+            extracted_text = pytesseract.image_to_string(img)
+            description = "(Extracted from Image via OCR)"
+            return extracted_text, description
+        except Exception as e:
+            raise ValueError(
+                f"OCR Failed: {e}. Install Tesseract-OCR: "
+                "https://github.com/UB-Mannheim/tesseract/wiki"
+            )
+
+    if lower_name.endswith(".evtx"):
+        extracted, description = parse_evtx(content)
+        return extracted, description
+
+    if lower_name.endswith(".xml"):
+        try:
+            text = content.decode("utf-8", errors="ignore")
+            # Try to format it as standard event text
+            from app.services.evtx_parser import _event_xml_to_text
+            formatted_text = _event_xml_to_text(text)
+            if formatted_text:
+                return formatted_text, f"Parsed XML file: {filename}"
+            return text, f"Uploaded file: {filename}"
+        except Exception as e:
+            raise ValueError(f"XML Parse Failed: {e}")
+
+    text = content.decode("utf-8", errors="ignore")
+    return text, f"Uploaded file: {filename}"
+
 
 @router.post("/", response_model=AnalyzeResponse)
 async def submit_analysis(
     text: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    language: str = Form("th"),
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
 ):
-    event_id = "Unknown"
-    provider = "Unknown"
     description = ""
-    
-    # Process File if uploaded
+    combined_text = text or ""
+
     if file:
+        # Prevent Memory Exhaustion / DoS (max 5MB)
+        MAX_FILE_SIZE = 5 * 1024 * 1024
         content = await file.read()
-        if file.content_type and file.content_type.startswith('image/'):
-            try:
-                img = Image.open(io.BytesIO(content))
-                # Note: Windows users might need to configure tesseract_cmd path 
-                # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-                extracted_text = pytesseract.image_to_string(img)
-                description = f"(Extracted from Image)\n{extracted_text}"
-                text = (text or "") + "\n" + extracted_text
-            except Exception as e:
-                description = f"OCR Failed: {str(e)}. Please ensure Tesseract-OCR is installed on your system."
-        elif file.filename.endswith('.xml'):
-            try:
-                root = ET.fromstring(content)
-                # Simple XML extraction (assuming standard Windows Event XML)
-                # This is a basic mock extraction for XML
-                description = f"Parsed XML file: {file.filename}"
-                text = (text or "") + "\n" + content.decode('utf-8', errors='ignore')
-            except Exception as e:
-                description = f"XML Parse Failed: {str(e)}"
-        else:
-            # Fallback for plain text or evtx (as raw string search)
-            description = f"Uploaded file: {file.filename}"
-            text = (text or "") + "\n" + content.decode('utf-8', errors='ignore')
-    
-    if not description and text:
+        if len(content) > MAX_FILE_SIZE:
+            return AnalyzeResponse(
+                eventId="Unknown",
+                provider="Unknown",
+                description="File is too large (max 5MB allowed).",
+            )
+            
+        try:
+            extracted, description = _process_upload(
+                content, file.filename or "", file.content_type
+            )
+            combined_text = (combined_text + "\n" + extracted).strip()
+        except ValueError as e:
+            return AnalyzeResponse(
+                eventId="Unknown",
+                provider="Unknown",
+                description=str(e),
+            )
+
+    if not description and combined_text:
         description = "Submitted via Text"
 
-    if text:
-        match_id = re.search(r'Event ID[:\s]+(\d+)', text, re.IGNORECASE)
-        if match_id:
-            event_id = match_id.group(1)
+    # Prevent DB bloat
+    if len(combined_text) > 50000:
+        combined_text = combined_text[:50000] + "... (truncated)"
         
-        match_source = re.search(r'Source[:\s]+([a-zA-Z0-9\-]+)', text, re.IGNORECASE)
-        if match_source:
-            provider = match_source.group(1)
+    metadata = parse_event_metadata(combined_text)
+    lang = language if language in ("th", "en") else "th"
 
-    search_query = f'Windows Event ID {event_id} {provider} solution'
-    results = []
-    
-    try:
-        # Scrape DuckDuckGo HTML version directly
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        res = requests.get(f'https://html.duckduckgo.com/html/?q={requests.utils.quote(search_query)}', headers=headers, timeout=5)
-        soup = BeautifulSoup(res.text, 'html.parser')
-        
-        links = soup.select('.result__url')
-        titles = soup.select('.result__title')
-        
-        for i in range(min(3, len(links))):
-            raw_url = links[i].get('href', '')
-            # DuckDuckGo wraps urls in /l/?uddg=...
-            if 'uddg=' in raw_url:
-                real_url = unquote(raw_url.split('uddg=')[1].split('&')[0])
-            else:
-                real_url = raw_url
-                
-            # Fallback title if unavailable
-            title_text = titles[i].text.strip() if i < len(titles) else real_url
-            results.append(SearchResult(title=title_text, link=real_url))
-            
-    except Exception as e:
-        results.append(SearchResult(title="Error during search", link=str(e)))
+    start_time = time.time()
+    results, combined_snippets = search_solutions(metadata.eventId, metadata.provider)
+    solution = build_summary(metadata.eventId, metadata.provider, combined_snippets, results, lang, metadata.faultingApp)
+    final_summary = format_summary_text(solution, lang)
+    search_time_ms = (time.time() - start_time) * 1000
 
-    # Fallback if empty
-    if not results:
-        results.append(SearchResult(title=f"Search for {event_id} on Microsoft", link=f"https://learn.microsoft.com/en-us/search/?terms={event_id}"))
+    db_history = AnalysisHistory(
+        event_id=metadata.eventId,
+        provider=metadata.provider,
+        parse_method=description,
+        description=combined_text or "No raw text",
+        ai_summary=final_summary,
+        solution_summary=solution.model_dump(),
+        event_metadata=metadata.model_dump(),
+        search_results=[res.model_dump() for res in results],
+        search_time_ms=search_time_ms,
+    )
+    db.add(db_history)
+    db.commit()
+    db.refresh(db_history)
 
     return AnalyzeResponse(
-        eventId=event_id,
-        provider=provider,
+        eventId=metadata.eventId,
+        provider=metadata.provider,
         description=description,
-        searchResults=results
+        eventMetadata=metadata,
+        aiSummary=final_summary,
+        solutionSummary=solution,
+        searchResults=results,
     )
+
+
+@router.post("/followup", response_model=FollowUpResponse)
+def followup_question(
+    body: FollowUpRequest,
+    _user: str = Depends(get_current_user),
+):
+    results, combined_snippets = search_solutions(body.eventId, body.provider)
+    summary = build_summary(body.eventId, body.provider, combined_snippets, results, body.language)
+    answer = build_followup_answer(body.question, summary, results, body.language)
+    return FollowUpResponse(answer=answer)

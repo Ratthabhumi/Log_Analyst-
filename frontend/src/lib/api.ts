@@ -1,0 +1,109 @@
+import { AnalysisReport, AppSettings, HistoryItem, StatsData } from "./types";
+
+const TOKEN_KEY = "eventiq_token";
+
+export function apiBase(settings: AppSettings) {
+  let url = settings.apiUrl.replace(/\/$/, "");
+  
+  // Force HTTPS on production to avoid mixed content errors
+  if (typeof window !== "undefined") {
+    const isProduction = window.location.hostname !== 'localhost' && 
+                         window.location.hostname !== '127.0.0.1';
+    if (isProduction && url.startsWith('http://')) {
+      url = url.replace('http://', 'https://');
+    }
+  }
+  
+  return url;
+}
+
+export function getAuthToken() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(TOKEN_KEY) || "";
+}
+
+export function saveAuthToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearAuthToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+function authHeaders(): HeadersInit {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const response = await fetch(input, {
+    ...init,
+    headers: {
+      ...authHeaders(),
+      ...init.headers,
+    },
+  });
+  if (response.status === 401) clearAuthToken();
+  return response;
+}
+
+export async function login(
+  settings: AppSettings,
+  username: string,
+  password: string
+): Promise<string> {
+  const response = await fetch(`${apiBase(settings)}/api/v1/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!response.ok) throw new Error("Invalid username or password");
+  const data = await response.json();
+  saveAuthToken(data.access_token);
+  return data.access_token;
+}
+
+export async function fetchHistory(settings: AppSettings): Promise<HistoryItem[]> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/history/`);
+  if (!response.ok) throw new Error("Failed to fetch history");
+  return response.json();
+}
+
+export async function fetchStats(settings: AppSettings): Promise<StatsData> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/stats/`);
+  if (!response.ok) throw new Error("Failed to fetch stats");
+  return response.json();
+}
+
+export async function deleteHistoryItem(settings: AppSettings, id: number) {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/history/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error("Failed to delete history");
+}
+
+export async function analyzeLog(
+  settings: AppSettings,
+  formData: FormData
+): Promise<AnalysisReport> {
+  formData.append("language", settings.language);
+  const response = await authFetch(`${apiBase(settings)}/api/v1/analyze/`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!response.ok) throw new Error("Analysis failed");
+  return response.json();
+}
+
+export async function askFollowUp(
+  settings: AppSettings,
+  body: { question: string; eventId: string; provider: string; language: string }
+): Promise<{ answer: string }> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/analyze/followup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error("Follow-up failed");
+  return response.json();
+}
