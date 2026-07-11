@@ -9,3 +9,5 @@ __pycache__/
 *.log
 history.db
 .DS_Store
+.omc/
+.venv/
