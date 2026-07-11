@@ -22,7 +22,7 @@ function normalizeApiUrl(url: string) {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  apiUrl: normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL || "https://log-analyst-bymew.fly.dev"),
+  apiUrl: normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL || "https://log-analyst-backend.onrender.com"),
   language: "th",
   theme: "light",
 };
