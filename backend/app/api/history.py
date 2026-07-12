@@ -34,6 +34,8 @@ def get_all_history(
             "searchResults": record.search_results,
             "searchTimeMs": record.search_time_ms,
             "created_at": record.created_at,
+            "username": record.username,
+            "feedback_by": record.feedback_by,
         })
     return results
 
