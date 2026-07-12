@@ -104,7 +104,7 @@ export default function Dashboard() {
               <p className="font-bold">{lang === "th" ? "🏆 ปัญหาที่พบบ่อยสุดในสัปดาห์นี้" : "🏆 Top Error of the Week"}</p>
               <p className="text-sm mt-1">
                 Event ID: <strong>{stats.topWeeklyError.eventId}</strong> ({stats.topWeeklyError.provider}) 
-                - พบบ่อยถึง <strong className="text-red-600 dark:text-red-400">{stats.topWeeklyError.count}</strong> ครั้ง
+                - {lang === "th" ? "พบบ่อยถึง" : "Occurred"} <strong className="text-red-600 dark:text-red-400">{stats.topWeeklyError.count}</strong> {lang === "th" ? "ครั้ง" : "times"}
               </p>
             </div>
           </div>
