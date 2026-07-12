@@ -26,7 +26,8 @@ SKIP_PATTERNS = re.compile(
     r"\b(i use|i noticed|i have|my computer|my server|what i.?ve done|saw this error|"
     r"thank you|specs:|windows 11|windows 10|intel vga|nvidia|reset the pc|"
     r"faq|question|how to fix\?|this tutorial|go through the faq|"
-    r"i recommend|you may need|however, if you see)\b",
+    r"i recommend|you may need|however, if you see|"
+    r"log name:|source:|date:|event id:|level:|computer:|description:|task category:|user:|keyword:)\b",
     re.IGNORECASE,
 )
 DATE_PATTERN = re.compile(

@@ -217,6 +217,32 @@ EVENT_KNOWLEDGE: dict[str, dict[str, SolutionSummary]] = {
         ),
     },
     
+    # ------------------- System / Windows Update -------------------
+    "109": {
+        "th": SolutionSummary(
+            overview="Event 109 (Kernel-Power) บันทึกเพื่อแจ้งให้ทราบว่าระบบกำลังเข้าสู่กระบวนการปิดเครื่อง (Shutdown) หรือรีสตาร์ท เป็นเหตุการณ์ปกติของระบบปฏิบัติการ",
+            causes=["ผู้ใช้สั่ง Shut down หรือ Restart เครื่อง", "ระบบกำลังรีบูตเพื่อติดตั้ง Windows Update", "มีโปรแกรมตั้งเวลาปิดเครื่องอัตโนมัติ"],
+            steps=["ไม่ต้องแก้ไขใดๆ เนื่องจากเป็นการทำงานปกติของระบบ", "หากเครื่องดับเองแบบไม่ได้สั่ง ให้ไปตรวจสอบ Event อื่นๆ ที่เกิดก่อนหน้า 109 (เช่น Error หรือ Critical) เพื่อหาสาเหตุที่แท้จริง"]
+        ),
+        "en": SolutionSummary(
+            overview="Event 109 (Kernel-Power) logs that the kernel power manager has initiated a shutdown transition. This is a normal operational event.",
+            causes=["User initiated a Shut down or Restart", "System is rebooting to apply Windows Updates", "A scheduled task initiated a shutdown"],
+            steps=["No action is required as this is normal system behavior.", "If the shutdown was unexpected, check the events immediately preceding Event 109 to find the root cause."]
+        )
+    },
+    "20": {
+        "th": SolutionSummary(
+            overview="Event 20 (Windows Update Agent) บันทึกว่าระบบดาวน์โหลดหรือติดตั้ง Windows Update ล้มเหลว มักพบพร้อมกับ Error Code เช่น 0x80072efe (เน็ตเวิร์คหลุด) หรือ 0x80070643 (ติดตั้งไม่ได้)",
+            causes=["การเชื่อมต่ออินเทอร์เน็ตขาดหายระหว่างอัปเดต", "ไฟล์อัปเดตดาวน์โหลดมาไม่สมบูรณ์ (Corrupted)", "Antivirus หรือ Firewall บล็อกการเชื่อมต่อกับเซิร์ฟเวอร์ Microsoft"],
+            steps=["ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต และลองกด Check for updates ใหม่อีกครั้ง", "ปิด Antivirus หรือ Firewall ของ Third-party ชั่วคราว", "ล้างแคช Windows Update โดยกด Stop service 'wuauserv' แล้วลบไฟล์ใน C:\\Windows\\SoftwareDistribution", "รัน Windows Update Troubleshooter"]
+        ),
+        "en": SolutionSummary(
+            overview="Event 20 (Windows Update Agent) indicates that a Windows Update failed to download or install. Often accompanied by an error code like 0x80072efe (connection aborted) or 0x80070643 (fatal error during installation).",
+            causes=["Network connection dropped during the update", "The downloaded update files are corrupted", "Third-party Antivirus or Firewall is blocking Microsoft servers"],
+            steps=["Check internet connectivity and try 'Check for updates' again", "Temporarily disable third-party Antivirus/Firewall", "Clear Windows Update cache by stopping 'wuauserv' service and clearing C:\\Windows\\SoftwareDistribution", "Run the Windows Update Troubleshooter"]
+        )
+    },
+    
     # ------------------- Failover Clustering -------------------
     "1069": {
         "th": SolutionSummary(
