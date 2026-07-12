@@ -128,7 +128,10 @@ export default function Dashboard() {
         item={selectedItem}
         settings={settings}
         open={detailOpen}
-        onOpenChange={setDetailOpen}
+        onOpenChange={(open) => {
+          setDetailOpen(open);
+          if (!open) refreshData();
+        }}
       />
     </div>
   );

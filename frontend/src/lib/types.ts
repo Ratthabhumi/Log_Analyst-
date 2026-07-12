@@ -39,6 +39,7 @@ export interface HistoryItem extends AnalysisReport {
   created_at: string;
   username?: string;
   feedback_by?: string;
+  feedback_score?: number;
 }
 
 export interface StatsData {

@@ -103,8 +103,8 @@ export function HistoryList({
                   </span>
                 )}
                 {item.feedback_by && (
-                  <span className="text-xs text-blue-500 dark:text-blue-400">
-                    Verified by: {item.feedback_by} 👍
+                  <span className={`text-xs ${item.feedback_score === -1 ? 'text-red-500 dark:text-red-400' : 'text-blue-500 dark:text-blue-400'}`}>
+                    {item.feedback_score === -1 ? `Rejected by: ${item.feedback_by} 👎` : `Verified by: ${item.feedback_by} 👍`}
                   </span>
                 )}
                 <button
