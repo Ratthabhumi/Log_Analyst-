@@ -122,6 +122,10 @@ EVENT_KNOWLEDGE: dict[str, dict[str, SolutionSummary]] = {
 
 
 def get_curated_summary(event_id: str, language: str) -> SolutionSummary | None:
+    # Map other DCOM errors to 10016's knowledge base
+    if event_id in ("10005", "10009", "10028"):
+        event_id = "10016"
+        
     if event_id not in EVENT_KNOWLEDGE:
         return None
     lang = language if language in ("th", "en") else "th"
