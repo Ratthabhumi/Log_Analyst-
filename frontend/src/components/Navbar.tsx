@@ -61,6 +61,7 @@ export function HistoryDetailDialog({ item, settings, open, onOpenChange }: Hist
     aiSummary: item.aiSummary,
     solutionSummary: item.solutionSummary,
     searchResults: item.searchResults,
+    historyId: item.id,
   };
 
   return (
