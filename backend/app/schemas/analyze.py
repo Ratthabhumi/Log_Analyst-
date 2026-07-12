@@ -48,7 +48,13 @@ class FollowUpResponse(BaseModel):
     answer: str
 
 
+class TopError(BaseModel):
+    eventId: str
+    provider: str
+    count: int
+
 class StatsResponse(BaseModel):
     totalLogs: int = 0
     criticalErrors: int = 0
     avgSearchTimeSec: float = 0.0
+    topWeeklyError: Optional[TopError] = None

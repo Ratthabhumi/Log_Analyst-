@@ -17,9 +17,21 @@ export function apiBase(settings: AppSettings) {
   return url;
 }
 
-export function getAuthToken() {
-  if (typeof window === "undefined") return "";
-  return localStorage.getItem(TOKEN_KEY) || "";
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getAuthUser(): { username: string; role: string } | null {
+  const token = getAuthToken();
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1];
+    const decoded = JSON.parse(atob(payload));
+    return { username: decoded.sub, role: decoded.role || "user" };
+  } catch {
+    return null;
+  }
 }
 
 export function saveAuthToken(token: string) {

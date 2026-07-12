@@ -13,8 +13,12 @@ interface NavbarProps {
   onLogout: () => void;
 }
 
+import { getAuthUser } from "@/lib/api";
+
 export function Navbar({ settings, onSettingsSave, onLogout }: NavbarProps) {
   const lang = settings.language;
+  const authUser = getAuthUser();
+  const username = authUser?.username || "Guest";
 
   return (
     <nav className="bg-[#0078d4] text-white px-4 sm:px-6 py-3 flex justify-between items-center">
@@ -27,11 +31,11 @@ export function Navbar({ settings, onSettingsSave, onLogout }: NavbarProps) {
         <SettingsDialog settings={settings} onSave={onSettingsSave} />
         <div className="flex items-center gap-2">
           <img
-            src="https://ui-avatars.com/api/?name=Admin&background=random&color=fff"
-            alt="admin"
+            src={`https://ui-avatars.com/api/?name=${username}&background=random&color=fff`}
+            alt={username}
             className="w-6 h-6 rounded-full"
           />
-          <span className="hidden sm:inline">admin</span>
+          <span className="hidden sm:inline">{username}</span>
         </div>
         <span className="cursor-pointer hover:text-blue-200" onClick={onLogout}>{t(lang, "logout")}</span>
       </div>

@@ -37,6 +37,12 @@ def _ensure_schema():
         if columns and "event_metadata" not in columns:
             conn.execute(text("ALTER TABLE analysis_history ADD COLUMN event_metadata JSON"))
             conn.commit()
+        if columns and "username" not in columns:
+            conn.execute(text("ALTER TABLE analysis_history ADD COLUMN username TEXT DEFAULT 'admin'"))
+            conn.commit()
+        if columns and "feedback_by" not in columns:
+            conn.execute(text("ALTER TABLE analysis_history ADD COLUMN feedback_by TEXT"))
+            conn.commit()
 
 
 _ensure_schema()

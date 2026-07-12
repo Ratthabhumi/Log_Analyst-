@@ -37,12 +37,19 @@ export interface HistoryItem extends AnalysisReport {
   parseMethod?: string;
   searchTimeMs?: number;
   created_at: string;
+  username?: string;
+  feedback_by?: string;
 }
 
 export interface StatsData {
   totalLogs: number;
   criticalErrors: number;
   avgSearchTimeSec: number;
+  topWeeklyError?: {
+    eventId: string;
+    provider: string;
+    count: number;
+  };
 }
 
 export type AppLanguage = "th" | "en";

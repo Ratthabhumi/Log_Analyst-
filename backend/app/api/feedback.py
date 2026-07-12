@@ -7,6 +7,8 @@ from app.core.database import get_db
 from app.models.history import AnalysisHistory
 from app.services.vector_db import add_solution
 
+from app.core.auth import get_current_user
+
 router = APIRouter()
 
 class FeedbackRequest(BaseModel):
@@ -15,12 +17,17 @@ class FeedbackRequest(BaseModel):
     corrected_solution: Optional[dict] = None
 
 @router.post("/feedback")
-def submit_feedback(req: FeedbackRequest, db: Session = Depends(get_db)):
+def submit_feedback(
+    req: FeedbackRequest, 
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user)
+):
     history_item = db.query(AnalysisHistory).filter(AnalysisHistory.id == req.history_id).first()
     if not history_item:
         raise HTTPException(status_code=404, detail="History not found")
         
     history_item.feedback_score = req.score
+    history_item.feedback_by = _user
     
     # If the user provides a corrected solution, overwrite it
     if req.corrected_solution:

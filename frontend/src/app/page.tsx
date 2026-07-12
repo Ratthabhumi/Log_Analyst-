@@ -98,6 +98,18 @@ export default function Dashboard() {
           <AnalyzeDialog settings={settings} onComplete={refreshData} />
         </div>
 
+        {stats.topWeeklyError && (
+          <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 text-yellow-800 dark:text-yellow-200 p-4 rounded shadow-sm flex items-center justify-between">
+            <div>
+              <p className="font-bold">{lang === "th" ? "🏆 ปัญหาที่พบบ่อยสุดในสัปดาห์นี้" : "🏆 Top Error of the Week"}</p>
+              <p className="text-sm mt-1">
+                Event ID: <strong>{stats.topWeeklyError.eventId}</strong> ({stats.topWeeklyError.provider}) 
+                - พบบ่อยถึง <strong className="text-red-600 dark:text-red-400">{stats.topWeeklyError.count}</strong> ครั้ง
+              </p>
+            </div>
+          </div>
+        )}
+
         <StatsCards stats={stats} language={lang} />
 
         <HistoryList

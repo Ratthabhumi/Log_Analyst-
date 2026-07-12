@@ -18,10 +18,13 @@ class LoginResponse(BaseModel):
 
 @router.post("/login", response_model=LoginResponse)
 def login(body: LoginRequest):
-    if not verify_credentials(body.username, body.password):
+    exact_username = verify_credentials(body.username, body.password)
+    if not exact_username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
-    token = create_access_token(body.username)
+    from app.core.auth import USERS
+    role = USERS.get(exact_username, {}).get("role", "user")
+    token = create_access_token(exact_username, role=role)
     return LoginResponse(access_token=token)

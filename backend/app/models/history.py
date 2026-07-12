@@ -16,4 +16,6 @@ class AnalysisHistory(Base):
     search_results = Column(JSON)
     search_time_ms = Column(Float, default=0.0)
     feedback_score = Column(Integer, default=0)
+    username = Column(String, default="admin")
+    feedback_by = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

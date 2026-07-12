@@ -97,9 +97,21 @@ export function HistoryList({
                 <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs px-2 py-0.5 rounded font-medium">
                   {new Date(item.created_at).toISOString().split("T")[0]}
                 </span>
+                {item.username && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    By: {item.username}
+                  </span>
+                )}
+                {item.feedback_by && (
+                  <span className="text-xs text-blue-500 dark:text-blue-400">
+                    Verified by: {item.feedback_by} 👍
+                  </span>
+                )}
                 <button
                   onClick={(e) => onDelete(item.id, e)}
-                  className="text-red-400 hover:text-red-600 focus:outline-none"
+                  className="text-red-400 hover:text-red-600 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={typeof window !== "undefined" && window.localStorage.getItem("eventiq_token") ? JSON.parse(atob(window.localStorage.getItem("eventiq_token")!.split(".")[1])).role !== "admin" : true}
+                  title={typeof window !== "undefined" && window.localStorage.getItem("eventiq_token") && JSON.parse(atob(window.localStorage.getItem("eventiq_token")!.split(".")[1])).role !== "admin" ? t(language, "adminOnly") : ""}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

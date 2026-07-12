@@ -123,6 +123,7 @@ async def submit_analysis(
         event_metadata=metadata.model_dump(),
         search_results=[res.model_dump() for res in results],
         search_time_ms=search_time_ms,
+        username=_user,
     )
     db.add(db_history)
     db.commit()
