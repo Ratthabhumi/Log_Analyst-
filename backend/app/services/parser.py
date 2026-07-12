@@ -36,12 +36,14 @@ def parse_event_metadata(text: str) -> EventMetadata:
     if not text:
         return EventMetadata()
 
-    event_id = _field(text, r"Event\s*ID[:\s]+(\d+)")
+    event_id = _field(text, r"Event\s*ID[:\s]+(\d+)", r'"id"[:\s]+(\d+)', r"'id'[:\s]+(\d+)")
     provider = _field(
         text,
         r"Provider\s*Name[:\s]+([^\n\r]+)",
         r"Source[:\s]+([^\n\r]+)",
         r"Provider[:\s]+([^\n\r]+)",
+        r'"provider"[:\s]+"([^"]+)"',
+        r"'provider'[:\s]+'([^']+)'",
     )
     if not provider and event_id in KNOWN_PROVIDERS:
         provider = KNOWN_PROVIDERS[event_id]
