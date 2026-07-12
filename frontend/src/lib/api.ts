@@ -126,7 +126,7 @@ export async function sendFeedback(
   settings: AppSettings,
   historyId: number,
   score: number,
-  correctedSolution?: Record<string, unknown>
+  correctedSolution?: any
 ): Promise<void> {
   const response = await authFetch(`${apiBase(settings)}/api/v1/feedback/feedback`, {
     method: 'POST',
