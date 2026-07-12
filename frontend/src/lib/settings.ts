@@ -42,6 +42,12 @@ export function loadSettings(): AppSettings {
       return DEFAULT_SETTINGS;
     }
     
+    // Automatically migrate old fly.dev URLs to Render
+    if (saved.apiUrl && saved.apiUrl.includes('fly.dev')) {
+      saved.apiUrl = "https://log-analyst-backend.onrender.com";
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    }
+    
     const apiUrl = normalizeApiUrl(saved.apiUrl || DEFAULT_SETTINGS.apiUrl);
     
     return {
