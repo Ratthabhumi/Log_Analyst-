@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 from app.schemas.analyze import EventMetadata
 

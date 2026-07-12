@@ -34,6 +34,7 @@ class AnalyzeResponse(BaseModel):
     aiSummary: str = ""
     solutionSummary: SolutionSummary = SolutionSummary()
     searchResults: List[SearchResult] = []
+    historyId: Optional[int] = None
 
 
 class FollowUpRequest(BaseModel):

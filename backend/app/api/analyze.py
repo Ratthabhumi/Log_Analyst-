@@ -109,7 +109,7 @@ async def submit_analysis(
 
     start_time = time.time()
     results, combined_snippets = search_solutions(metadata.eventId, metadata.provider)
-    solution = build_summary(metadata.eventId, metadata.provider, combined_snippets, results, lang, metadata.faultingApp, x_gemini_api_key)
+    solution = build_summary(metadata.eventId, metadata.provider, combined_snippets, results, lang, metadata.faultingApp, x_gemini_api_key, combined_text)
     final_summary = format_summary_text(solution, lang)
     search_time_ms = (time.time() - start_time) * 1000
 
@@ -128,6 +128,19 @@ async def submit_analysis(
     db.commit()
     db.refresh(db_history)
 
+    # Auto-export to Vector DB
+    from app.services.vector_db import add_solution
+    try:
+        # Auto export to Vector DB (score 0 means unverified, but it's now saved auto)
+        add_solution(
+            event_id=metadata.eventId,
+            description=combined_text or "No raw text",
+            solution_summary=solution.model_dump(),
+            feedback_score=0
+        )
+    except Exception as e:
+        print(f"Failed to auto-export to Vector DB: {e}")
+
     return AnalyzeResponse(
         eventId=metadata.eventId,
         provider=metadata.provider,
@@ -136,6 +149,7 @@ async def submit_analysis(
         aiSummary=final_summary,
         solutionSummary=solution,
         searchResults=results,
+        historyId=db_history.id,
     )
 
 

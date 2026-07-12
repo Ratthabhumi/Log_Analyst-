@@ -9,6 +9,7 @@ from ddgs import DDGS
 
 from app.schemas.analyze import SearchResult, SolutionSummary
 from app.services.event_knowledge import get_curated_summary
+from app.services.vector_db import search_similar_logs
 
 ACTION_KEYWORDS = re.compile(
     r"\b(fix|resolve|open|run|enable|disable|restart|check|configure|set|modify|"
@@ -332,11 +333,16 @@ def _build_from_gemini(
     results: List[SearchResult],
     language: str,
     faulting_app: str,
-    api_key: str
+    api_key: str,
+    rag_context: str = ""
 ) -> SolutionSummary | None:
     prompt = f"""You are an expert Windows Server Administrator and SOC Analyst.
 Analyze Windows Event ID {event_id} from {provider}.
 Faulting App: {faulting_app}
+
+Internal Knowledge Base (Past Solved Issues):
+{rag_context}
+
 Web Context: {snippets}
 
 Output ONLY valid JSON with no markdown formatting. The JSON must match this structure:
@@ -460,6 +466,7 @@ def build_summary(
     language: str = "th",
     faulting_app: str = "",
     api_key: str | None = None,
+    description: str = "",
 ) -> SolutionSummary:
     lang = language if language in ("th", "en") else "th"
 
@@ -467,10 +474,26 @@ def build_summary(
     if curated:
         return curated
 
+    rag_context = ""
+    if description:
+        try:
+            similar = search_similar_logs(description=description, event_id=event_id)
+            if similar:
+                rag_context = json.dumps(similar, ensure_ascii=False)
+        except Exception:
+            pass
+
     if api_key:
-        gemini_summary = _build_from_gemini(event_id, provider, snippets, results, lang, faulting_app, api_key)
+        gemini_summary = _build_from_gemini(event_id, provider, snippets, results, lang, faulting_app, api_key, rag_context)
         if gemini_summary:
             return gemini_summary
+            
+    # If no Gemini API but we found a similar past solution in our local vector DB, use it!
+    if description and 'similar' in locals() and similar:
+        try:
+            return SolutionSummary(**similar[0])
+        except Exception:
+            pass
 
     return _build_from_web(event_id, provider, snippets, results, lang, faulting_app)
 

@@ -101,13 +101,13 @@ def parse_evtx(content: bytes, max_records: int = 100) -> tuple[str, str]:
     if error_events:
         if len(error_events) == 1:
             extracted = error_events[0]
-            desc = f"Parsed EVTX file (1 Error found)"
+            desc = "Parsed EVTX file (1 Error found)"
         else:
             extracted = f"--- MULTIPLE CRITICAL EVENTS FOUND ({len(error_events)}) ---\n\n" + "\n\n--- NEXT EVENT ---\n\n".join(error_events[:5])
             desc = f"Parsed EVTX file (Correlated {min(len(error_events), 5)} Errors)"
     else:
         extracted = fallback
-        desc = f"Parsed EVTX file (No errors found, returning first record)"
+        desc = "Parsed EVTX file (No errors found, returning first record)"
 
     if not extracted:
         raise ValueError("No events found in EVTX file")

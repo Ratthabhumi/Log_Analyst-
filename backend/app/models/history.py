@@ -15,4 +15,5 @@ class AnalysisHistory(Base):
     event_metadata = Column(JSON, nullable=True)
     search_results = Column(JSON)
     search_time_ms = Column(Float, default=0.0)
+    feedback_score = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)

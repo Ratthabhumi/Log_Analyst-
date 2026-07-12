@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analyze, history, stats, auth
+from app.api import analyze, history, stats, auth, feedback, obsidian
 from app.core.database import engine, Base
 
 load_dotenv()
@@ -33,6 +33,9 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(analyze.router, prefix="/api/v1/analyze", tags=["Analyze"])
 app.include_router(history.router, prefix="/api/v1/history", tags=["History"])
 app.include_router(stats.router, prefix="/api/v1/stats", tags=["Stats"])
+app.include_router(feedback.router, prefix="/api/v1/feedback", tags=["Feedback"])
+app.include_router(obsidian.router, prefix="/api/v1/obsidian", tags=["Obsidian"])
+
 
 
 @app.get("/")

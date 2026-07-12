@@ -29,6 +29,7 @@ export interface AnalysisReport {
   aiSummary?: string;
   solutionSummary?: SolutionSummary;
   searchResults?: SearchResult[];
+  historyId?: number;
 }
 
 export interface HistoryItem extends AnalysisReport {

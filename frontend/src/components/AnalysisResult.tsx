@@ -5,6 +5,9 @@ import { Download, Search, Link as LinkIcon } from "lucide-react";
 import { AnalysisReport, AppLanguage, AppSettings } from "@/lib/types";
 import { FollowUpDialog } from "@/components/FollowUpDialog";
 import { t } from "@/lib/i18n";
+import { sendFeedback } from "@/lib/api";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { useState } from "react";
 
 interface AnalysisResultProps {
   report: AnalysisReport;
@@ -94,6 +97,17 @@ function downloadJSON(report: AnalysisReport) {
 
 export function AnalysisResult({ report, settings, language, onAnalyzeAnother }: AnalysisResultProps) {
   const meta = report.eventMetadata;
+  const [feedbackSent, setFeedbackSent] = useState<number | null>(null);
+
+  const handleFeedback = async (score: number) => {
+    if (!report.historyId) return;
+    try {
+      await sendFeedback(settings, report.historyId, score, report.solutionSummary);
+      setFeedbackSent(score);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="space-y-4 w-full min-w-0">
@@ -222,6 +236,33 @@ export function AnalysisResult({ report, settings, language, onAnalyzeAnother }:
       )}
 
       <div className="flex flex-wrap gap-2 mt-4 print:hidden">
+        {report.historyId && (
+          <>
+            <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-md p-1 mr-2 bg-gray-50 dark:bg-gray-800">
+              <Button
+                variant={feedbackSent === 1 ? "default" : "ghost"}
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => handleFeedback(1)}
+                disabled={feedbackSent !== null}
+                title="Good solution (adds to knowledge base)"
+              >
+                <ThumbsUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </Button>
+              <Button
+                variant={feedbackSent === -1 ? "destructive" : "ghost"}
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => handleFeedback(-1)}
+                disabled={feedbackSent !== null}
+                title="Bad solution"
+              >
+                <ThumbsDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+              </Button>
+            </div>
+          </>
+        )}
+        
         <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => downloadMarkdown(report)}>
           <Download className="w-4 h-4 mr-2" />
           Export MD

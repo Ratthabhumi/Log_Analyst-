@@ -110,3 +110,34 @@ export async function askFollowUp(
   if (!response.ok) throw new Error("Follow-up failed");
   return response.json();
 }
+export async function sendFeedback(
+  settings: AppSettings,
+  historyId: number,
+  score: number,
+  correctedSolution?: Record<string, unknown>
+): Promise<void> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/feedback/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      history_id: historyId,
+      score,
+      corrected_solution: correctedSolution,
+    }),
+  }, settings);
+  if (!response.ok) throw new Error('Failed to send feedback');
+  return response.json();
+}
+
+export async function exportToObsidian(
+  settings: AppSettings,
+  historyId: number
+): Promise<{ status: string; filepath: string }> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/obsidian/obsidian/export`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ history_id: historyId }),
+  }, settings);
+  if (!response.ok) throw new Error('Failed to export to Obsidian');
+  return response.json();
+}
