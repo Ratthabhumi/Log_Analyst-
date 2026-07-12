@@ -82,19 +82,22 @@ def parse_evtx(content: bytes, max_records: int = 100) -> tuple[str, str]:
     fallback = ""
     error_event = ""
 
-    with Evtx(io.BytesIO(content)) as log:
-        for i, record in enumerate(log.records()):
-            if i >= max_records:
-                break
-            xml_str = record.xml()
-            text = _event_xml_to_text(xml_str)
-            if not text:
-                continue
-            if not fallback:
-                fallback = text
-            if _is_error_level(xml_str):
-                error_event = text
-                break
+    try:
+        with Evtx(io.BytesIO(content)) as log:
+            for i, record in enumerate(log.records()):
+                if i >= max_records:
+                    break
+                xml_str = record.xml()
+                text = _event_xml_to_text(xml_str)
+                if not text:
+                    continue
+                if not fallback:
+                    fallback = text
+                if _is_error_level(xml_str):
+                    error_event = text
+                    break
+    except Exception as e:
+        raise ValueError(f"Failed to parse EVTX file: Data may be corrupted ({str(e)})")
 
     extracted = error_event or fallback
     if not extracted:
