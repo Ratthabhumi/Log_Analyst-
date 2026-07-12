@@ -4,7 +4,8 @@ const STORAGE_KEY = "eventiq_settings";
 
 function normalizeApiUrl(url: string) {
   const trimmed = url.trim();
-  if (!trimmed) return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  // Hardcode the Render URL as the absolute default, ignoring old Vercel env vars
+  if (!trimmed) return "https://log-analyst-backend.onrender.com";
 
   const withProtocol = /^(https?:\/\/)/i.test(trimmed) ? trimmed : `https://${trimmed}`;
   const cleanUrl = withProtocol.replace(/\/$/, "");
@@ -22,7 +23,7 @@ function normalizeApiUrl(url: string) {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  apiUrl: normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL || "https://log-analyst-backend.onrender.com"),
+  apiUrl: normalizeApiUrl("https://log-analyst-backend.onrender.com"),
   language: "th",
   theme: "light",
 };
