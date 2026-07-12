@@ -13,3 +13,4 @@ python-dotenv
 PyJWT
 python-evtx
 defusedxml
+chromadb
