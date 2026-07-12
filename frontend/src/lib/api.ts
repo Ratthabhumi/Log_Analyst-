@@ -30,16 +30,19 @@ export function clearAuthToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-function authHeaders(): HeadersInit {
+function authHeaders(settings?: AppSettings): HeadersInit {
   const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (settings?.geminiApiKey) headers["X-Gemini-Api-Key"] = settings.geminiApiKey;
+  return headers;
 }
 
-async function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+async function authFetch(input: RequestInfo | URL, init: RequestInit = {}, settings?: AppSettings) {
   const response = await fetch(input, {
     ...init,
     headers: {
-      ...authHeaders(),
+      ...authHeaders(settings),
       ...init.headers,
     },
   });
@@ -64,13 +67,13 @@ export async function login(
 }
 
 export async function fetchHistory(settings: AppSettings): Promise<HistoryItem[]> {
-  const response = await authFetch(`${apiBase(settings)}/api/v1/history/`);
+  const response = await authFetch(`${apiBase(settings)}/api/v1/history/`, {}, settings);
   if (!response.ok) throw new Error("Failed to fetch history");
   return response.json();
 }
 
 export async function fetchStats(settings: AppSettings): Promise<StatsData> {
-  const response = await authFetch(`${apiBase(settings)}/api/v1/stats/`);
+  const response = await authFetch(`${apiBase(settings)}/api/v1/stats/`, {}, settings);
   if (!response.ok) throw new Error("Failed to fetch stats");
   return response.json();
 }
@@ -78,7 +81,7 @@ export async function fetchStats(settings: AppSettings): Promise<StatsData> {
 export async function deleteHistoryItem(settings: AppSettings, id: number) {
   const response = await authFetch(`${apiBase(settings)}/api/v1/history/${id}`, {
     method: "DELETE",
-  });
+  }, settings);
   if (!response.ok) throw new Error("Failed to delete history");
 }
 
@@ -90,7 +93,7 @@ export async function analyzeLog(
   const response = await authFetch(`${apiBase(settings)}/api/v1/analyze/`, {
     method: "POST",
     body: formData,
-  });
+  }, settings);
   if (!response.ok) throw new Error("Analysis failed");
   return response.json();
 }
@@ -103,7 +106,7 @@ export async function askFollowUp(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  });
+  }, settings);
   if (!response.ok) throw new Error("Follow-up failed");
   return response.json();
 }

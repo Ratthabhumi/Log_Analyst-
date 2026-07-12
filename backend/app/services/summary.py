@@ -1,6 +1,8 @@
 import re
 from typing import List
 from urllib.parse import urlparse
+import json
+import requests
 
 from deep_translator import GoogleTranslator
 from ddgs import DDGS
@@ -306,11 +308,74 @@ def _build_from_web(
     return SolutionSummary(overview=overview, causes=causes, steps=steps)
 
 
+def _call_gemini(prompt: str, api_key: str) -> str:
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.2}
+    }
+    headers = {"Content-Type": "application/json"}
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        print(f"Gemini API Error: {e}")
+        return ""
+
+def _build_from_gemini(
+    event_id: str,
+    provider: str,
+    snippets: str,
+    results: List[SearchResult],
+    language: str,
+    faulting_app: str,
+    api_key: str
+) -> SolutionSummary | None:
+    prompt = f"""You are an expert Windows Server Administrator and SOC Analyst.
+Analyze Windows Event ID {event_id} from {provider}.
+Faulting App: {faulting_app}
+Web Context: {snippets}
+
+Output ONLY valid JSON with no markdown formatting. The JSON must match this structure:
+{{
+  "overview": "1-2 sentences explaining what the event means.",
+  "causes": ["cause 1", "cause 2"],
+  "steps": ["step 1", "step 2", "step 3"]
+}}
+Language required: {'Thai' if language == 'th' else 'English'}.
+"""
+    response_text = _call_gemini(prompt, api_key)
+    if not response_text:
+        return None
+        
+    try:
+        cleaned = response_text.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        
+        data = json.loads(cleaned.strip())
+        return SolutionSummary(
+            overview=data.get("overview", "No overview provided by AI."),
+            causes=data.get("causes", []),
+            steps=data.get("steps", [])
+        )
+    except Exception as e:
+        print(f"Gemini Parse Error: {e}")
+        return None
+
+
 def build_followup_answer(
     question: str,
     summary: SolutionSummary,
     results: List[SearchResult],
     language: str = "th",
+    api_key: str | None = None,
 ) -> str:
     text = question.strip()
     if not text:
@@ -322,6 +387,18 @@ def build_followup_answer(
     needs_references = bool(re.search(
         r"\b(link|reference|where|หา|ลิงก์|เอกสาร|documentation|อ้างอิง|source)\b", normalized
     ))
+
+    if api_key:
+        prompt = f"""You are an expert IT assistant. The user is asking a follow up question about Windows Event ID {summary.overview}.
+Known causes: {summary.causes}
+Known steps: {summary.steps}
+
+User Question: {text}
+Language: {'Thai' if language == 'th' else 'English'}
+Answer the question directly and professionally."""
+        ai_ans = _call_gemini(prompt, api_key)
+        if ai_ans:
+            return ai_ans
 
     lines: List[str] = []
     if language == "th":
@@ -381,12 +458,18 @@ def build_summary(
     results: List[SearchResult],
     language: str = "th",
     faulting_app: str = "",
+    api_key: str | None = None,
 ) -> SolutionSummary:
     lang = language if language in ("th", "en") else "th"
 
     curated = get_curated_summary(event_id, lang)
     if curated:
         return curated
+
+    if api_key:
+        gemini_summary = _build_from_gemini(event_id, provider, snippets, results, lang, faulting_app, api_key)
+        if gemini_summary:
+            return gemini_summary
 
     return _build_from_web(event_id, provider, snippets, results, lang, faulting_app)
 

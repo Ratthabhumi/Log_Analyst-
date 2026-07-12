@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, Form, Depends
+from fastapi import APIRouter, File, UploadFile, Form, Depends, Header
 from typing import Optional
 from sqlalchemy.orm import Session
 import io
@@ -69,6 +69,7 @@ async def submit_analysis(
     language: str = Form("th"),
     db: Session = Depends(get_db),
     _user: str = Depends(get_current_user),
+    x_gemini_api_key: Optional[str] = Header(None),
 ):
     description = ""
     combined_text = text or ""
@@ -108,7 +109,7 @@ async def submit_analysis(
 
     start_time = time.time()
     results, combined_snippets = search_solutions(metadata.eventId, metadata.provider)
-    solution = build_summary(metadata.eventId, metadata.provider, combined_snippets, results, lang, metadata.faultingApp)
+    solution = build_summary(metadata.eventId, metadata.provider, combined_snippets, results, lang, metadata.faultingApp, x_gemini_api_key)
     final_summary = format_summary_text(solution, lang)
     search_time_ms = (time.time() - start_time) * 1000
 
@@ -142,8 +143,9 @@ async def submit_analysis(
 def followup_question(
     body: FollowUpRequest,
     _user: str = Depends(get_current_user),
+    x_gemini_api_key: Optional[str] = Header(None),
 ):
     results, combined_snippets = search_solutions(body.eventId, body.provider)
-    summary = build_summary(body.eventId, body.provider, combined_snippets, results, body.language)
-    answer = build_followup_answer(body.question, summary, results, body.language)
+    summary = build_summary(body.eventId, body.provider, combined_snippets, results, body.language, None, x_gemini_api_key)
+    answer = build_followup_answer(body.question, summary, results, body.language, x_gemini_api_key)
     return FollowUpResponse(answer=answer)

@@ -75,6 +75,15 @@ export function SettingsDialog({ settings, onSave }: SettingsDialogProps) {
               <option value="dark">{t(lang, "themeDark")}</option>
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gemini API Key (Optional)</label>
+            <Input
+              type="password"
+              value={draft.geminiApiKey || ""}
+              onChange={(e) => setDraft({ ...draft, geminiApiKey: e.target.value })}
+              placeholder="AIzaSy..."
+            />
+          </div>
           <div className="flex gap-2 pt-2">
             <Button onClick={handleSave} className="flex-1 bg-[#0078d4] hover:bg-[#006cbd]">{t(lang, "save")}</Button>
             <Button variant="outline" onClick={handleReset}>{t(lang, "reset")}</Button>

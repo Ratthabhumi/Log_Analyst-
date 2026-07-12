@@ -26,6 +26,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   apiUrl: normalizeApiUrl("https://log-analyst-backend.onrender.com"),
   language: "th",
   theme: "light",
+  geminiApiKey: "",
 };
 
 export function loadSettings(): AppSettings {

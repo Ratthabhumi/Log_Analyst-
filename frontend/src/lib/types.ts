@@ -51,4 +51,5 @@ export interface AppSettings {
   apiUrl: string;
   language: AppLanguage;
   theme: AppTheme;
+  geminiApiKey?: string;
 }

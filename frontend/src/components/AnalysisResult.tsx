@@ -79,6 +79,19 @@ function downloadMarkdown(report: AnalysisReport) {
   URL.revokeObjectURL(url);
 }
 
+function downloadJSON(report: AnalysisReport) {
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  const eventId = report.eventId || "unknown";
+  anchor.href = url;
+  anchor.download = `eventiq-${eventId}-${Date.now()}.json`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function AnalysisResult({ report, settings, language, onAnalyzeAnother }: AnalysisResultProps) {
   const meta = report.eventMetadata;
 
@@ -208,12 +221,20 @@ export function AnalysisResult({ report, settings, language, onAnalyzeAnother }:
         />
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-        <Button variant="outline" className="w-full" onClick={() => downloadMarkdown(report)}>
+      <div className="flex flex-wrap gap-2 mt-4 print:hidden">
+        <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => downloadMarkdown(report)}>
           <Download className="w-4 h-4 mr-2" />
-          Export Markdown
+          Export MD
         </Button>
-        <Button variant="outline" className="w-full" onClick={onAnalyzeAnother}>
+        <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => downloadJSON(report)}>
+          <Download className="w-4 h-4 mr-2" />
+          Export JSON
+        </Button>
+        <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => window.print()}>
+          <Download className="w-4 h-4 mr-2" />
+          Export PDF
+        </Button>
+        <Button variant="outline" className="w-full mt-2" onClick={onAnalyzeAnother}>
           {t(language, "analyzeAnother")}
         </Button>
       </div>

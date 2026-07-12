@@ -9,26 +9,23 @@ services:
       JWT_SECRET: eventiq-local-dev-secret
       JWT_EXPIRE_HOURS: 24
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
-      DATABASE_URL: postgresql://admin:password@db:5432/eventiq
+      DATABASE_URL: sqlite:///./data/history.db
       PORT: 8000
     ports:
       - "8000:8000"
-    depends_on:
-      - db
+    volumes:
+      - eventiq_data:/app/data
     restart: unless-stopped
 
-  db:
-    image: ankane/pgvector:latest
-    container_name: eventiq_db
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: eventiq
+  frontend:
+    build:
+      context: ./frontend
+    container_name: eventiq_frontend
     ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "3000:3000"
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  eventiq_data:
