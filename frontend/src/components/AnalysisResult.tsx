@@ -102,8 +102,9 @@ export function AnalysisResult({ report, settings, language, onAnalyzeAnother }:
   const handleFeedback = async (score: number) => {
     if (!report.historyId) return;
     try {
-      await sendFeedback(settings, report.historyId, score, report.solutionSummary);
-      setFeedbackSent(score);
+      const newScore = feedbackSent === score ? 0 : score;
+      await sendFeedback(settings, report.historyId, newScore, report.solutionSummary);
+      setFeedbackSent(newScore === 0 ? null : newScore);
     } catch (e) {
       console.error(e);
     }
@@ -248,7 +249,6 @@ export function AnalysisResult({ report, settings, language, onAnalyzeAnother }:
                   size="sm"
                   className={`h-8 px-2 ${feedbackSent === 1 ? "bg-green-600 hover:bg-green-700" : ""}`}
                   onClick={() => handleFeedback(1)}
-                  disabled={feedbackSent !== null}
                   title="Good solution (adds to knowledge base)"
                 >
                   <ThumbsUp className={`w-4 h-4 ${feedbackSent === 1 ? "text-white" : "text-green-600 dark:text-green-400"}`} />
@@ -259,7 +259,6 @@ export function AnalysisResult({ report, settings, language, onAnalyzeAnother }:
                   size="sm"
                   className={`h-8 px-2 ${feedbackSent === -1 ? "bg-red-600 hover:bg-red-700" : ""}`}
                   onClick={() => handleFeedback(-1)}
-                  disabled={feedbackSent !== null}
                   title="Bad solution"
                 >
                   <ThumbsDown className={`w-4 h-4 ${feedbackSent === -1 ? "text-white" : "text-red-600 dark:text-red-400"}`} />
