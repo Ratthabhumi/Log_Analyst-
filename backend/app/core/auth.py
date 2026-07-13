@@ -64,6 +64,18 @@ def get_user_role(username: str) -> str:
     finally:
         db.close()
 
+def seed_users():
+    db = SessionLocal()
+    try:
+        for username, user_info in USERS.items():
+            if not db.query(User).filter(User.username == username).first():
+                db.add(User(username=username, password=user_info["password"], role=user_info["role"]))
+        db.commit()
+    except Exception as e:
+        print(f"Failed to seed users: {e}")
+    finally:
+        db.close()
+
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),

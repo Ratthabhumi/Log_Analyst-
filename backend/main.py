@@ -12,6 +12,7 @@ import app.models.vector
 import app.models.user
 
 Base.metadata.create_all(bind=engine)
+auth.seed_users()
 
 app = FastAPI(
     title="EventIQ API",
