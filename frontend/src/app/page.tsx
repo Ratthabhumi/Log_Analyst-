@@ -11,12 +11,14 @@ import { DEFAULT_SETTINGS, loadSettings, applyTheme } from "@/lib/settings";
 import { clearAuthToken, deleteHistoryItem, fetchHistory, fetchStats, getAuthToken } from "@/lib/api";
 import { t, SortKey } from "@/lib/i18n";
 
+import { Charts } from "@/components/Charts";
+
 export default function Dashboard() {
   const [hydrated, setHydrated] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
-  const [stats, setStats] = useState<StatsData>({ totalLogs: 0, criticalErrors: 0, avgSearchTimeSec: 0 });
+  const [stats, setStats] = useState<StatsData>({ totalLogs: 0, criticalErrors: 0, avgSearchTimeSec: 0, dailyTrends: [], typeDistribution: [] });
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<SortKey>("newest");
   const [selectedItem, setSelectedItem] = useState<HistoryItem | null>(null);
@@ -57,7 +59,7 @@ export default function Dashboard() {
     setIsLoggedIn(false);
     clearAuthToken();
     setHistoryList([]);
-    setStats({ totalLogs: 0, criticalErrors: 0, avgSearchTimeSec: 0 });
+    setStats({ totalLogs: 0, criticalErrors: 0, avgSearchTimeSec: 0, dailyTrends: [], typeDistribution: [] });
   };
 
   const handleDeleteHistory = async (id: number, e: React.MouseEvent) => {
@@ -111,6 +113,7 @@ export default function Dashboard() {
         )}
 
         <StatsCards stats={stats} language={lang} />
+        <Charts stats={stats} language={lang} />
 
         <HistoryList
           items={historyList}

@@ -27,7 +27,12 @@ export function Navbar({ settings, onSettingsSave, onLogout }: NavbarProps) {
         EventIQ
       </div>
       <div className="flex items-center gap-4 sm:gap-6 text-sm">
-        <span className="font-medium hidden sm:inline">{t(lang, "dashboard")}</span>
+        <span className="font-medium hidden sm:inline"><a href="/"> {t(lang, "dashboard")}</a></span>
+        {authUser?.role === "admin" && (
+          <span className="font-medium hidden sm:inline text-yellow-300">
+            <a href="/admin">Admin Panel 🛡️</a>
+          </span>
+        )}
         <SettingsDialog settings={settings} onSave={onSettingsSave} />
         <div className="flex items-center gap-2">
           <img

@@ -53,8 +53,18 @@ class TopError(BaseModel):
     provider: str
     count: int
 
+class DailyTrend(BaseModel):
+    date: str
+    count: int
+
+class TypeDistribution(BaseModel):
+    name: str
+    value: int
+
 class StatsResponse(BaseModel):
     totalLogs: int = 0
     criticalErrors: int = 0
     avgSearchTimeSec: float = 0.0
     topWeeklyError: Optional[TopError] = None
+    dailyTrends: List[DailyTrend] = []
+    typeDistribution: List[TypeDistribution] = []

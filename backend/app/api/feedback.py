@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
@@ -20,7 +20,8 @@ class FeedbackRequest(BaseModel):
 def submit_feedback(
     req: FeedbackRequest, 
     db: Session = Depends(get_db),
-    _user: str = Depends(get_current_user)
+    _user: str = Depends(get_current_user),
+    x_gemini_api_key: Optional[str] = Header(None)
 ):
     history_item = db.query(AnalysisHistory).filter(AnalysisHistory.id == req.history_id).first()
     if not history_item:
@@ -39,10 +40,12 @@ def submit_feedback(
     if req.score > 0 and history_item.solution_summary:
         try:
             add_solution(
+                db=db,
                 event_id=history_item.event_id,
                 description=history_item.description,
                 solution_summary=history_item.solution_summary,
-                feedback_score=req.score
+                feedback_score=req.score,
+                api_key=x_gemini_api_key
             )
         except Exception as e:
             print(f"Failed to add to vector DB: {e}")

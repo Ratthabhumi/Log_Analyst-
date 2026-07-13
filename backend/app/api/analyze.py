@@ -109,7 +109,7 @@ async def submit_analysis(
 
     start_time = time.time()
     results, combined_snippets = search_solutions(metadata.eventId, metadata.provider)
-    solution = build_summary(metadata.eventId, metadata.provider, combined_snippets, results, lang, metadata.faultingApp, x_gemini_api_key, combined_text)
+    solution = build_summary(metadata.eventId, metadata.provider, combined_snippets, results, lang, metadata.faultingApp, x_gemini_api_key, combined_text, db)
     final_summary = format_summary_text(solution, lang)
     search_time_ms = (time.time() - start_time) * 1000
 
@@ -134,10 +134,12 @@ async def submit_analysis(
     try:
         # Auto export to Vector DB (score 0 means unverified, but it's now saved auto)
         add_solution(
+            db=db,
             event_id=metadata.eventId,
             description=combined_text or "No raw text",
             solution_summary=solution.model_dump(),
-            feedback_score=0
+            feedback_score=0,
+            api_key=x_gemini_api_key
         )
     except Exception as e:
         print(f"Failed to auto-export to Vector DB: {e}")
@@ -159,8 +161,9 @@ def followup_question(
     body: FollowUpRequest,
     _user: str = Depends(get_current_user),
     x_gemini_api_key: Optional[str] = Header(None),
+    db: Session = Depends(get_db),
 ):
     results, combined_snippets = search_solutions(body.eventId, body.provider)
-    summary = build_summary(body.eventId, body.provider, combined_snippets, results, body.language, None, x_gemini_api_key)
+    summary = build_summary(body.eventId, body.provider, combined_snippets, results, body.language, "", x_gemini_api_key, "", db)
     answer = build_followup_answer(body.question, summary, results, body.language, x_gemini_api_key)
     return FollowUpResponse(answer=answer)

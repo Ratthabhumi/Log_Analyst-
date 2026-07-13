@@ -24,7 +24,7 @@ def login(body: LoginRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
         )
-    from app.core.auth import USERS
-    role = USERS.get(exact_username, {}).get("role", "user")
+    from app.core.auth import get_user_role
+    role = get_user_role(exact_username)
     token = create_access_token(exact_username, role=role)
     return LoginResponse(access_token=token)

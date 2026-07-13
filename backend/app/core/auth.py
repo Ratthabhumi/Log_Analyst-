@@ -30,13 +30,39 @@ def create_access_token(username: str, role: str = "user") -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
+from app.core.database import SessionLocal
+from app.models.user import User
+
 def verify_credentials(username: str, password: str) -> str | None:
-    for exact_username, user_info in USERS.items():
-        if exact_username.lower() == username.lower():
-            if user_info["password"] == password:
-                return exact_username
-            break
-    return None
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        if user and user.password == password:
+            return user.username
+        
+        # Fallback to hardcoded admin/users if DB is empty or user not found
+        for exact_username, user_info in USERS.items():
+            if exact_username.lower() == username.lower():
+                if user_info["password"] == password:
+                    # Seed to DB automatically
+                    if not db.query(User).filter(User.username == exact_username).first():
+                        db.add(User(username=exact_username, password=user_info["password"], role=user_info["role"]))
+                        db.commit()
+                    return exact_username
+                break
+        return None
+    finally:
+        db.close()
+
+def get_user_role(username: str) -> str:
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        if user:
+            return user.role
+        return USERS.get(username, {}).get("role", "user")
+    finally:
+        db.close()
 
 
 def get_current_user(

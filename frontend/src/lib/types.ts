@@ -42,6 +42,16 @@ export interface HistoryItem extends AnalysisReport {
   feedback_score?: number;
 }
 
+export interface DailyTrend {
+  date: string;
+  count: number;
+}
+
+export interface TypeDistribution {
+  name: string;
+  value: number;
+}
+
 export interface StatsData {
   totalLogs: number;
   criticalErrors: number;
@@ -51,6 +61,8 @@ export interface StatsData {
     provider: string;
     count: number;
   };
+  dailyTrends: DailyTrend[];
+  typeDistribution: TypeDistribution[];
 }
 
 export type AppLanguage = "th" | "en";

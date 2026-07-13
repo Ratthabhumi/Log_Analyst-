@@ -21,6 +21,9 @@ Base = declarative_base()
 def _ensure_schema():
     Base.metadata.create_all(bind=engine)
     if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        with engine.connect() as conn:
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            conn.commit()
         return
     with engine.connect() as conn:
         columns = {

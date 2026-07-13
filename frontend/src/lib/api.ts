@@ -153,3 +153,38 @@ export async function exportToObsidian(
   if (!response.ok) throw new Error('Failed to export to Obsidian');
   return response.json();
 }
+
+export async function fetchUsers(settings: AppSettings): Promise<any[]> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/admin/users`, {}, settings);
+  if (!response.ok) throw new Error('Failed to fetch users');
+  return response.json();
+}
+
+export async function createUser(settings: AppSettings, user: any): Promise<any> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/admin/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(user),
+  }, settings);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to create user');
+  }
+  return response.json();
+}
+
+export async function deleteUser(settings: AppSettings, userId: number): Promise<void> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/admin/users/${userId}`, {
+    method: 'DELETE',
+  }, settings);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete user');
+  }
+}
+
+export async function fetchLeaderboard(settings: AppSettings): Promise<any[]> {
+  const response = await authFetch(`${apiBase(settings)}/api/v1/admin/leaderboard`, {}, settings);
+  if (!response.ok) throw new Error('Failed to fetch leaderboard');
+  return response.json();
+}

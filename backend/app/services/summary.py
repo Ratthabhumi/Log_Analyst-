@@ -3,6 +3,7 @@ from typing import List
 from urllib.parse import urlparse
 import json
 import requests
+from sqlalchemy.orm import Session
 
 from deep_translator import GoogleTranslator
 from ddgs import DDGS
@@ -467,6 +468,7 @@ def build_summary(
     faulting_app: str = "",
     api_key: str | None = None,
     description: str = "",
+    db: Session | None = None,
 ) -> SolutionSummary:
     lang = language if language in ("th", "en") else "th"
 
@@ -475,9 +477,9 @@ def build_summary(
         return curated
 
     rag_context = ""
-    if description:
+    if description and db and api_key:
         try:
-            similar = search_similar_logs(description=description, event_id=event_id)
+            similar = search_similar_logs(db=db, description=description, api_key=api_key, event_id=event_id)
             if similar:
                 rag_context = json.dumps(similar, ensure_ascii=False)
         except Exception:

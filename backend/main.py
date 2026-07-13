@@ -4,10 +4,12 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analyze, history, stats, auth, feedback, obsidian
+from app.api import analyze, history, stats, auth, feedback, obsidian, admin
 from app.core.database import engine, Base
 
 load_dotenv()
+import app.models.vector
+import app.models.user
 
 Base.metadata.create_all(bind=engine)
 
@@ -35,6 +37,7 @@ app.include_router(history.router, prefix="/api/v1/history", tags=["History"])
 app.include_router(stats.router, prefix="/api/v1/stats", tags=["Stats"])
 app.include_router(feedback.router, prefix="/api/v1/feedback", tags=["Feedback"])
 app.include_router(obsidian.router, prefix="/api/v1/obsidian", tags=["Obsidian"])
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 
 
 

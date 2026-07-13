@@ -235,49 +235,68 @@ export function AnalysisResult({ report, settings, language, onAnalyzeAnother }:
         />
       )}
 
-      <div className="flex flex-wrap gap-2 mt-4 print:hidden">
+      <div className="flex flex-col gap-2 mt-4 print:hidden">
         {report.historyId && (
-          <>
-            <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-md p-1 mr-2 bg-gray-50 dark:bg-gray-800">
-              <Button
-                variant={feedbackSent === 1 ? "default" : "ghost"}
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => handleFeedback(1)}
-                disabled={feedbackSent !== null}
-                title="Good solution (adds to knowledge base)"
-              >
-                <ThumbsUp className="w-4 h-4 text-green-600 dark:text-green-400" />
-              </Button>
-              <Button
-                variant={feedbackSent === -1 ? "destructive" : "ghost"}
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => handleFeedback(-1)}
-                disabled={feedbackSent !== null}
-                title="Bad solution"
-              >
-                <ThumbsDown className="w-4 h-4 text-red-600 dark:text-red-400" />
-              </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                {language === 'th' ? "คำตอบนี้ช่วยได้หรือไม่?" : "Was this helpful?"}
+              </span>
+              <div className="flex items-center gap-1 border border-gray-200 dark:border-gray-700 rounded-md p-1 bg-gray-50 dark:bg-gray-800">
+                <Button
+                  variant={feedbackSent === 1 ? "default" : "ghost"}
+                  size="sm"
+                  className={`h-8 px-2 ${feedbackSent === 1 ? "bg-green-600 hover:bg-green-700" : ""}`}
+                  onClick={() => handleFeedback(1)}
+                  disabled={feedbackSent !== null}
+                  title="Good solution (adds to knowledge base)"
+                >
+                  <ThumbsUp className={`w-4 h-4 ${feedbackSent === 1 ? "text-white" : "text-green-600 dark:text-green-400"}`} />
+                  {feedbackSent === 1 && <span className="ml-1 text-xs">Verified</span>}
+                </Button>
+                <Button
+                  variant={feedbackSent === -1 ? "destructive" : "ghost"}
+                  size="sm"
+                  className={`h-8 px-2 ${feedbackSent === -1 ? "bg-red-600 hover:bg-red-700" : ""}`}
+                  onClick={() => handleFeedback(-1)}
+                  disabled={feedbackSent !== null}
+                  title="Bad solution"
+                >
+                  <ThumbsDown className={`w-4 h-4 ${feedbackSent === -1 ? "text-white" : "text-red-600 dark:text-red-400"}`} />
+                  {feedbackSent === -1 && <span className="ml-1 text-xs">Not Verified</span>}
+                </Button>
+              </div>
             </div>
-          </>
+            {feedbackSent !== null && (
+              <p className={`text-sm ${feedbackSent === 1 ? 'text-green-600' : 'text-amber-600'}`}>
+                {language === 'th' ? 'บันทึกความคิดเห็นแล้ว ขอบคุณครับ!' : 'Feedback recorded. Thank you!'}
+                {feedbackSent === -1 && (
+                  <span className="block text-xs mt-1">
+                    {language === 'th' ? '(คำตอบนี้จะไม่ถูกบันทึกเพื่อใช้ในอนาคต)' : '(This solution will not be saved for future use)'}
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
         )}
         
-        <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => downloadMarkdown(report)}>
-          <Download className="w-4 h-4 mr-2" />
-          Export MD
-        </Button>
-        <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => downloadJSON(report)}>
-          <Download className="w-4 h-4 mr-2" />
-          Export JSON
-        </Button>
-        <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => window.print()}>
-          <Download className="w-4 h-4 mr-2" />
-          Export PDF
-        </Button>
-        <Button variant="outline" className="w-full mt-2" onClick={onAnalyzeAnother}>
-          {t(language, "analyzeAnother")}
-        </Button>
+        <div className="flex flex-wrap gap-2 w-full mt-2">
+          <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => downloadMarkdown(report)}>
+            <Download className="w-4 h-4 mr-2" />
+            Export MD
+          </Button>
+          <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => downloadJSON(report)}>
+            <Download className="w-4 h-4 mr-2" />
+            Export JSON
+          </Button>
+          <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => window.print()}>
+            <Download className="w-4 h-4 mr-2" />
+            Export PDF
+          </Button>
+          <Button variant="outline" className="w-full mt-2" onClick={onAnalyzeAnother}>
+            {t(language, "analyzeAnother")}
+          </Button>
+        </div>
       </div>
     </div>
   );
