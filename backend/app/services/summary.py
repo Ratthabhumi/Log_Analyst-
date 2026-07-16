@@ -338,19 +338,30 @@ def _build_from_gemini(
     rag_context: str = ""
 ) -> SolutionSummary | None:
     is_fortinet = "FortiGate" in provider or "fortinet" in provider.lower()
-    system_context = (
-        "You are an expert Fortinet/FortiGate Firewall Administrator and Network Security Engineer."
-        if is_fortinet else
-        "You are an expert Windows Server Administrator and SOC Analyst."
-    )
-    log_type_hint = (
-        "\nThis is a Fortinet FortiGate firewall log. Focus on: traffic policy decisions, "
-        "IPS/UTM events, blocked connections, threat signatures, and network security recommendations."
-        if is_fortinet else ""
-    )
+    is_cisco = "Cisco" in provider or "ASA" in provider or "FTD" in provider
+
+    if is_fortinet:
+        system_context = "You are an expert Fortinet/FortiGate Firewall Administrator and Network Security Engineer."
+        log_type_hint = (
+            "\nThis is a Fortinet FortiGate firewall log. Focus on: traffic policy decisions, "
+            "IPS/UTM events, blocked connections, threat signatures, and network security recommendations."
+        )
+        log_desc = f"Fortinet FortiGate log (Log ID: {event_id})"
+    elif is_cisco:
+        system_context = "You are an expert Cisco ASA/FTD Firewall Administrator and Network Security Engineer."
+        log_type_hint = (
+            "\nThis is a Cisco ASA/FTD syslog message. Focus on: access control policies, "
+            "NAT translations, VPN events, connection tracking, threat detection, and Cisco firewall recommendations."
+        )
+        log_desc = f"Cisco ASA log (Message ID: {event_id})"
+    else:
+        system_context = "You are an expert Windows Server Administrator and SOC Analyst."
+        log_type_hint = ""
+        log_desc = f"Windows Event ID {event_id} from {provider}"
+
     prompt = f"""{system_context}
-Analyze {'Fortinet FortiGate log' if is_fortinet else f'Windows Event ID {event_id} from {provider}'}.
-{'Log ID: ' + event_id if is_fortinet else 'Faulting App: ' + faulting_app}{log_type_hint}
+Analyze {log_desc}.
+{'Faulting App: ' + faulting_app if not is_fortinet and not is_cisco else ''}{log_type_hint}
 
 Internal Knowledge Base (Past Solved Issues):
 {rag_context}

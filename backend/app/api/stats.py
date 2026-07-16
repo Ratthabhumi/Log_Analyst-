@@ -75,3 +75,90 @@ def get_stats(
         dailyTrends=daily_trends_list,
         typeDistribution=type_dist_list
     )
+
+
+@router.get("/correlations")
+def get_correlations(
+    db: Session = Depends(get_db),
+    _user: str = Depends(get_current_user),
+):
+    """Find correlated event IDs: events that frequently co-occur or repeat in patterns."""
+    from datetime import datetime, timedelta
+    from collections import Counter, defaultdict
+
+    records = db.query(AnalysisHistory).order_by(AnalysisHistory.created_at).all()
+
+    # --- 1. Frequency: top repeated event IDs ---
+    freq_counter = Counter()
+    for r in records:
+        if r.event_id and r.event_id != "Unknown":
+            freq_counter[(r.event_id, r.provider or "Unknown")] += 1
+
+    top_repeated = [
+        {
+            "eventId": eid,
+            "provider": prov,
+            "count": cnt,
+            "type": "repeated",
+            "label": f"Event {eid} recurred {cnt}x"
+        }
+        for (eid, prov), cnt in freq_counter.most_common(5)
+        if cnt >= 2
+    ]
+
+    # --- 2. Time correlation: events within 5-minute windows ---
+    time_pairs = Counter()
+    window_minutes = 5
+    for i, a in enumerate(records):
+        if not a.created_at or not a.event_id or a.event_id == "Unknown":
+            continue
+        for b in records[i+1:]:
+            if not b.created_at:
+                break
+            diff = abs((b.created_at - a.created_at).total_seconds())
+            if diff > window_minutes * 60:
+                break
+            if b.event_id and b.event_id != a.event_id and b.event_id != "Unknown":
+                pair = tuple(sorted([a.event_id, b.event_id]))
+                time_pairs[pair] += 1
+
+    time_correlated = [
+        {
+            "eventIds": list(pair),
+            "count": cnt,
+            "type": "time_correlated",
+            "label": f"Event {pair[0]} & {pair[1]} occurred within 5 min ({cnt}x)"
+        }
+        for pair, cnt in time_pairs.most_common(5)
+        if cnt >= 2
+    ]
+
+    # --- 3. Critical event clusters (same day) ---
+    daily_critical = defaultdict(list)
+    for r in records:
+        if r.created_at and r.event_metadata:
+            meta = EventMetadata(**r.event_metadata)
+            if meta.isCritical and r.event_id != "Unknown":
+                day = r.created_at.strftime("%Y-%m-%d")
+                daily_critical[day].append(r.event_id)
+
+    critical_clusters = []
+    for day, events in daily_critical.items():
+        if len(events) >= 2:
+            unique_events = list(set(events))
+            critical_clusters.append({
+                "date": day,
+                "eventIds": unique_events[:5],
+                "count": len(events),
+                "type": "critical_cluster",
+                "label": f"{len(events)} critical events on {day}: {', '.join(unique_events[:3])}"
+            })
+    critical_clusters.sort(key=lambda x: x["date"], reverse=True)
+    critical_clusters = critical_clusters[:5]
+
+    return {
+        "topRepeated": top_repeated,
+        "timeCorrelated": time_correlated,
+        "criticalClusters": critical_clusters,
+        "hasInsights": bool(top_repeated or time_correlated or critical_clusters)
+    }

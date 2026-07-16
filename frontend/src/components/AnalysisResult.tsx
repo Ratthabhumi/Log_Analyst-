@@ -96,6 +96,75 @@ function downloadJSON(report: AnalysisReport) {
   URL.revokeObjectURL(url);
 }
 
+function exportToPDF(report: AnalysisReport, language: string) {
+  const meta = report.eventMetadata;
+  const now = new Date().toLocaleString(language === 'th' ? 'th-TH' : 'en-US');
+
+  const causesHtml = (report.solutionSummary?.causes || []).map(
+    (c, i) => `<li style="margin-bottom:6px">${i + 1}. ${c}</li>`
+  ).join("");
+  const stepsHtml = (report.solutionSummary?.steps || []).map(
+    (s, i) => `<li style="margin-bottom:8px;padding:8px 12px;background:#f0f9ff;border-left:3px solid #0078d4;border-radius:4px">${i + 1}. ${s}</li>`
+  ).join("");
+  const refsHtml = (report.searchResults || []).slice(0, 3).map(
+    (r) => `<li style="margin-bottom:4px"><a href="${r.link}" style="color:#0078d4">${r.title}</a></li>`
+  ).join("");
+
+  const metaHtml = meta ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:12px">
+    ${meta.level ? `<div><span style="color:#888">Level:</span> <strong>${meta.level}</strong></div>` : ""}
+    ${meta.logName ? `<div><span style="color:#888">Log:</span> <strong>${meta.logName}</strong></div>` : ""}
+    ${meta.timestamp ? `<div><span style="color:#888">Time:</span> <strong>${meta.timestamp}</strong></div>` : ""}
+    ${meta.computer ? `<div><span style="color:#888">Computer:</span> <strong>${meta.computer}</strong></div>` : ""}
+  </div>` : "";
+
+  const html = `<!DOCTYPE html>
+<html lang="${language === 'th' ? 'th' : 'en'}">
+<head>
+<meta charset="UTF-8">
+<title>EventIQ Report — ${report.eventId}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;background:#fff;padding:40px;max-width:800px;margin:0 auto}
+  .hdr{border-bottom:3px solid #0078d4;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}
+  .brand{font-size:22px;font-weight:700;color:#0078d4}
+  .brand small{color:#555;font-size:13px;font-weight:400;display:block;margin-top:2px}
+  .evtbox{background:#eff6ff;border-left:4px solid #0078d4;padding:16px;border-radius:6px;margin-bottom:24px}
+  .evtid{font-size:17px;font-weight:700;color:#0078d4}
+  .badge{display:inline-block;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:8px}
+  .sec{margin-bottom:22px}
+  .sec-title{font-size:13px;font-weight:700;color:#374151;border-bottom:1px solid #e5e7eb;padding-bottom:5px;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em}
+  .overview{font-size:14px;color:#374151;line-height:1.7;padding:12px;background:#f9fafb;border-radius:6px}
+  ul{padding-left:0;list-style:none}
+  .footer{margin-top:40px;border-top:1px solid #e5e7eb;padding-top:10px;font-size:11px;color:#9ca3af;text-align:center}
+  @media print{body{padding:20px}}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="brand">⚡ EventIQ<small>AI-powered Log Analyzer</small></div>
+  <div style="font-size:12px;color:#666">Generated: ${now}</div>
+</div>
+<div class="evtbox">
+  <div class="evtid">Event ID: ${report.eventId} — ${report.provider}${meta?.isCritical ? '<span class="badge">CRITICAL</span>' : ""}</div>
+  ${report.description ? `<div style="font-size:13px;color:#555;margin-top:4px">${report.description}</div>` : ""}
+  ${metaHtml}
+</div>
+${report.solutionSummary?.overview ? `<div class="sec"><div class="sec-title">${language === "th" ? "ภาพรวมปัญหา" : "Overview"}</div><div class="overview">${report.solutionSummary.overview}</div></div>` : ""}
+${causesHtml ? `<div class="sec"><div class="sec-title">${language === "th" ? "สาเหตุที่เป็นไปได้" : "Possible Causes"}</div><ul>${causesHtml}</ul></div>` : ""}
+${stepsHtml ? `<div class="sec"><div class="sec-title">${language === "th" ? "วิธีแก้ไข (ทำตามลำดับ)" : "Resolution Steps"}</div><ul>${stepsHtml}</ul></div>` : ""}
+${refsHtml ? `<div class="sec"><div class="sec-title">${language === "th" ? "เอกสารอ้างอิง" : "References"}</div><ul>${refsHtml}</ul></div>` : ""}
+<div class="footer">EventIQ — AI-powered Log Analyzer | Confidential</div>
+</body></html>`;
+
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) { alert("Please allow popups to export PDF."); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+}
+
+
 export function AnalysisResult({ report, settings, language, sourceImage, onAnalyzeAnother }: AnalysisResultProps) {
   const meta = report.eventMetadata;
   const [feedbackSent, setFeedbackSent] = useState<number | null>(null);
@@ -302,7 +371,7 @@ export function AnalysisResult({ report, settings, language, sourceImage, onAnal
             <Download className="w-4 h-4 mr-2" />
             Export JSON
           </Button>
-          <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => window.print()}>
+          <Button variant="outline" className="flex-1 min-w-[120px]" onClick={() => exportToPDF(report, language)}>
             <Download className="w-4 h-4 mr-2" />
             Export PDF
           </Button>

@@ -12,6 +12,7 @@ import { clearAuthToken, deleteHistoryItem, fetchHistory, fetchStats, getAuthTok
 import { t, SortKey } from "@/lib/i18n";
 
 import { Charts } from "@/components/Charts";
+import { CorrelationPanel } from "@/components/CorrelationPanel";
 
 export default function Dashboard() {
   const [hydrated, setHydrated] = useState(false);
@@ -113,7 +114,8 @@ export default function Dashboard() {
         )}
 
         <StatsCards stats={stats} language={lang} />
-        <Charts stats={stats} language={lang} />
+        <Charts stats={stats} language={lang} isDark={settings.theme === 'dark'} />
+        <CorrelationPanel settings={settings} language={lang} refreshKey={historyList.length} />
 
         <HistoryList
           items={historyList}

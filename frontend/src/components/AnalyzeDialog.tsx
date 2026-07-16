@@ -4,10 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Plus, UploadCloud, Code, Image as ImageIcon, FileText } from "lucide-react";
+import { Plus, UploadCloud, Code, Image as ImageIcon, FileText, Layers } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AnalysisResult } from "@/components/AnalysisResult";
+import { BatchResult } from "@/components/BatchResult";
 import { AnalysisReport, AppSettings } from "@/lib/types";
 import { analyzeLog } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -35,6 +36,9 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [pastedImage, setPastedImage] = useState<File | null>(null);
   const [tab, setTab] = useState("text");
+  // Batch state
+  const [batchResults, setBatchResults] = useState<{ filename: string; report: AnalysisReport | null; error?: string }[] | null>(null);
+  const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   const loadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
   const lang = settings.language;
@@ -128,7 +132,38 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
       setReport(null);
       setPastedImage(null);
       setTab("text");
+      setBatchResults(null);
+      setBatchProgress(null);
     }
+  };
+
+  const handleBatchAnalyze = async () => {
+    const batchInput = document.getElementById("batch-upload") as HTMLInputElement;
+    const files = batchInput?.files;
+    if (!files || files.length === 0) {
+      alert(lang === 'th' ? 'กรุณาเลือกไฟล์ก่อน' : 'Please select files first.');
+      return;
+    }
+    setLoading(true);
+    const total = files.length;
+    const results: { filename: string; report: AnalysisReport | null; error?: string }[] = [];
+    for (let i = 0; i < total; i++) {
+      const file = files[i];
+      setBatchProgress({ current: i + 1, total });
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("language", settings.language);
+        const data = await analyzeLog(settings, formData);
+        results.push({ filename: file.name, report: data });
+      } catch (e) {
+        results.push({ filename: file.name, report: null, error: String(e) });
+      }
+    }
+    setLoading(false);
+    setBatchProgress(null);
+    setBatchResults(results);
+    onComplete();
   };
 
   return (
@@ -185,7 +220,7 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
               </div>
             ) : (
             <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-4 bg-gray-100 dark:bg-gray-900">
+              <TabsList className="grid w-full grid-cols-4 mb-4 bg-gray-100 dark:bg-gray-900">
                 <TabsTrigger value="text" className="flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" />{t(lang, "tabText")}
                 </TabsTrigger>
@@ -194,6 +229,9 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
                 </TabsTrigger>
                 <TabsTrigger value="file" className="flex items-center gap-1.5">
                   <Code className="w-3.5 h-3.5" />{t(lang, "tabFile")}
+                </TabsTrigger>
+                <TabsTrigger value="batch" className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" />{lang === 'th' ? 'Batch' : 'Batch'}
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="text">
@@ -250,17 +288,52 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
                   <Input id="file-upload" type="file" accept=".evtx,.xml,.txt,.csv,.log" className="hidden" />
                 </label>
               </TabsContent>
+              <TabsContent value="batch">
+                <label htmlFor="batch-upload" className="border-2 border-dashed border-[#0078d4]/40 rounded-lg p-8 flex flex-col items-center justify-center text-center space-y-2 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 cursor-pointer block w-full">
+                  <Layers className="w-8 h-8 text-[#0078d4]" />
+                  <p className="text-sm text-gray-700 dark:text-gray-200 font-medium">
+                    {lang === 'th' ? 'เลือกหลายไฟล์พร้อมกัน' : 'Select multiple files at once'}
+                  </p>
+                  <p className="text-xs text-gray-400">.evtx, .xml, .txt, .csv, .log — {lang === 'th' ? 'สูงสุด 20 ไฟล์' : 'up to 20 files'}</p>
+                  <Input id="batch-upload" type="file" multiple accept=".evtx,.xml,.txt,.csv,.log" className="hidden" />
+                </label>
+                {batchProgress && (
+                  <div className="mt-3 text-sm text-center text-gray-500">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-1">
+                      <div
+                        className="bg-[#0078d4] h-1.5 rounded-full transition-all"
+                        style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                      />
+                    </div>
+                    {lang === 'th' ? `กำลังวิเคราะห์ไฟล์ที่ ${batchProgress.current} / ${batchProgress.total}` : `Analyzing file ${batchProgress.current} / ${batchProgress.total}`}
+                  </div>
+                )}
+              </TabsContent>
             </Tabs>
             )}
             {!loading && (
-            <Button onClick={handleAnalyze} className="w-full bg-[#0078d4] hover:bg-[#006cbd] mt-4" disabled={loading}>
-              {t(lang, "searchAnalyze")}
+            <Button
+              onClick={tab === 'batch' ? handleBatchAnalyze : handleAnalyze}
+              className="w-full bg-[#0078d4] hover:bg-[#006cbd] mt-4"
+              disabled={loading}
+            >
+              {tab === 'batch'
+                ? (lang === 'th' ? '🚀 วิเคราะห์ทั้งหมด' : '🚀 Analyze All')
+                : t(lang, "searchAnalyze")}
             </Button>
             )}
           </div>
+        ) : batchResults ? (
+          <div className="mt-4">
+            <BatchResult
+              results={batchResults}
+              language={lang}
+              onClose={() => { setBatchResults(null); setTab("batch"); }}
+            />
+          </div>
         ) : (
           <AnalysisResult
-            report={report}
+            report={report!}
             settings={settings}
             language={lang}
             sourceImage={pastedImage}

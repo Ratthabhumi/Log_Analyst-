@@ -16,6 +16,9 @@ CRITICAL_LEVELS = {"critical", "error", "1", "2", "emergency", "alert"}
 # Fortinet log action types that are security-relevant
 FORTINET_CRITICAL_ACTIONS = {"block", "deny", "drop", "reset", "blocked"}
 
+# Cisco ASA severity levels (0=emergency, 1=alert, 2=critical, 3=error, 4=warning)
+CISCO_CRITICAL_SEVERITIES = {0, 1, 2, 3}
+
 
 def _field(text: str, *patterns: str) -> str:
     for pattern in patterns:
@@ -105,6 +108,114 @@ def _parse_fortinet(text: str) -> EventMetadata:
         faultingApp="",
     )
 
+def _is_cisco_asa(text: str) -> bool:
+    """Detect Cisco ASA / FTD log format."""
+    patterns = [
+        r'%ASA-\d+-\d+',
+        r'%FTD-\d+-\d+',
+        r'%PIX-\d+-\d+',
+        r'Cisco Adaptive Security',
+        r'ASA\d{4}',  # device name like ASA5506
+    ]
+    return any(re.search(p, text, re.IGNORECASE) for p in patterns)
+
+
+# Cisco ASA message IDs and their human-readable names
+CISCO_MSG_NAMES = {
+    "106001": "Inbound TCP denied",
+    "106006": "Deny inbound packet",
+    "106007": "Deny inbound UDP",
+    "106014": "Deny inbound ICMP",
+    "106023": "Deny TCP/UDP/ICMP packet",
+    "106100": "Access-list permit/deny",
+    "302013": "TCP connection built",
+    "302014": "TCP connection torn down",
+    "302015": "UDP connection built",
+    "302016": "UDP connection torn down",
+    "302020": "ICMP connection built",
+    "305011": "NAT translation built",
+    "305012": "NAT translation torn down",
+    "402117": "IPSEC crypto map failed",
+    "402119": "IPSEC packet error",
+    "500004": "Invalid transport field",
+    "710003": "Connection to interface denied",
+    "733100": "Object drop rate exceeded",
+}
+
+
+def _parse_cisco_asa(text: str) -> EventMetadata:
+    """Parse Cisco ASA/FTD/PIX syslog format."""
+    # Match: %ASA-severity-msgid or %FTD-severity-msgid
+    header = re.search(
+        r'%(ASA|FTD|PIX)-(\d)-(\d+):?\s*(.*)',
+        text, re.IGNORECASE | re.DOTALL
+    )
+
+    device_type = "Cisco ASA"
+    severity_num = 5  # default: notification
+    msg_id = "Unknown"
+    msg_body = text
+
+    if header:
+        device_type = f"Cisco {header.group(1).upper()}"
+        severity_num = int(header.group(2))
+        msg_id = header.group(3)
+        msg_body = header.group(4).strip()
+
+    # Map severity number to level name
+    severity_map = {
+        0: "Emergency", 1: "Alert", 2: "Critical",
+        3: "Error", 4: "Warning", 5: "Notification",
+        6: "Informational", 7: "Debug"
+    }
+    level = severity_map.get(severity_num, "Notification")
+
+    # Get human-readable name for message ID
+    msg_name = CISCO_MSG_NAMES.get(msg_id, "")
+    provider = f"{device_type}/{msg_name}" if msg_name else device_type
+
+    # Extract source/destination from message body
+    src = re.search(r'src\s+\w+:([\d./]+)', msg_body, re.IGNORECASE)
+    dst = re.search(r'dst\s+\w+:([\d./]+)', msg_body, re.IGNORECASE)
+    src_ip = src.group(1) if src else ""
+    dst_ip = dst.group(1) if dst else ""
+
+    # Extract timestamp from syslog header
+    ts_match = re.search(
+        r'(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}(?:\s+\d{4})?)',
+        text
+    )
+    timestamp = ts_match.group(1) if ts_match else ""
+
+    # Extract hostname/device from syslog
+    host_match = re.search(
+        r'(?:^|>)\s*(\S+)\s+%(?:ASA|FTD|PIX)',
+        text, re.IGNORECASE
+    )
+    computer = host_match.group(1) if host_match else ""
+
+    # Build log_name from key fields
+    parts = []
+    if src_ip: parts.append(f"Src: {src_ip}")
+    if dst_ip: parts.append(f"Dst: {dst_ip}")
+    if msg_body and not src_ip:
+        parts.append(msg_body[:120])
+    log_name = " | ".join(parts) if parts else msg_name
+
+    is_critical = severity_num in CISCO_CRITICAL_SEVERITIES
+
+    return EventMetadata(
+        eventId=msg_id,
+        provider=provider,
+        level=level,
+        logName=log_name,
+        timestamp=timestamp,
+        computer=computer,
+        isCritical=is_critical,
+        faultingApp="",
+    )
+
+
 
 def is_critical_level(level: str) -> bool:
     normalized = level.strip().lower()
@@ -122,6 +233,10 @@ def parse_event_metadata(text: str) -> EventMetadata:
     # Detect Fortinet log first
     if _is_fortinet_log(text):
         return _parse_fortinet(text)
+
+    # Detect Cisco ASA/FTD
+    if _is_cisco_asa(text):
+        return _parse_cisco_asa(text)
 
     event_id = _field(text, r"Event\s*ID[:\s]+(\d+)", r'"id"[:\s]+(\d+)', r"'id'[:\s]+(\d+)")
     provider = _field(
