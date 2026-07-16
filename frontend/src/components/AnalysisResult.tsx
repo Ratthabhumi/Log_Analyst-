@@ -14,6 +14,7 @@ interface AnalysisResultProps {
   settings: AppSettings;
   language: AppLanguage;
   sourceImage?: File | null;
+  sourceText?: string | null;
   onAnalyzeAnother: () => void;
 }
 
@@ -165,7 +166,7 @@ ${refsHtml ? `<div class="sec"><div class="sec-title">${language === "th" ? "เ
 }
 
 
-export function AnalysisResult({ report, settings, language, sourceImage, onAnalyzeAnother }: AnalysisResultProps) {
+export function AnalysisResult({ report, settings, language, sourceImage, sourceText, onAnalyzeAnother }: AnalysisResultProps) {
   const meta = report.eventMetadata;
   const [feedbackSent, setFeedbackSent] = useState<number | null>(null);
 
@@ -195,6 +196,19 @@ export function AnalysisResult({ report, settings, language, sourceImage, onAnal
           />
         </div>
       )}
+      
+      {/* Text preview from upload */}
+      {sourceText && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+          <p className="text-xs text-gray-500 dark:text-gray-400 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            📝 {language === 'th' ? 'ข้อความที่ส่งวิเคราะห์:' : 'Submitted via Text:'}
+          </p>
+          <div className="bg-white dark:bg-gray-950 p-3 max-h-48 overflow-y-auto">
+            <pre className="text-xs text-gray-700 dark:text-gray-300 font-mono whitespace-pre-wrap">{sourceText}</pre>
+          </div>
+        </div>
+      )}
+
       <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-[#0078d4] p-4 rounded-md break-words w-full">
         <h3 className="font-semibold text-blue-800 dark:text-blue-200 break-words">
           {t(language, "eventId")}: {report.eventId} - {report.provider}

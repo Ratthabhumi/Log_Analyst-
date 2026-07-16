@@ -35,6 +35,7 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
   const [elapsedSec, setElapsedSec] = useState(0);
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [pastedImage, setPastedImage] = useState<File | null>(null);
+  const [sourceText, setSourceText] = useState<string | null>(null);
   const [tab, setTab] = useState("text");
   // Batch state
   const [batchResults, setBatchResults] = useState<{ filename: string; report: AnalysisReport | null; error?: string }[] | null>(null);
@@ -104,7 +105,12 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
       const imageInput = document.getElementById("image-upload") as HTMLInputElement;
       const fileInput = document.getElementById("file-upload") as HTMLInputElement;
 
-      if (textVal) formData.append("text", textVal);
+      if (textVal) {
+        setSourceText(textVal);
+        formData.append("text", textVal);
+      } else {
+        setSourceText(null);
+      }
 
       if (pastedImage) {
         formData.append("file", pastedImage);
@@ -131,6 +137,7 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
     if (!value) {
       setReport(null);
       setPastedImage(null);
+      setSourceText(null);
       setTab("text");
       setBatchResults(null);
       setBatchProgress(null);
@@ -337,7 +344,8 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
             settings={settings}
             language={lang}
             sourceImage={pastedImage}
-            onAnalyzeAnother={() => { setReport(null); setPastedImage(null); setTab("text"); }}
+            sourceText={sourceText}
+            onAnalyzeAnother={() => { setReport(null); setPastedImage(null); setSourceText(null); setTab("text"); }}
           />
         )}
       </DialogContent>
