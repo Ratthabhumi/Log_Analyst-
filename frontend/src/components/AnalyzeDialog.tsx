@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Plus, UploadCloud, Code } from "lucide-react";
+import { Plus, UploadCloud, Code, Image as ImageIcon, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AnalysisResult } from "@/components/AnalysisResult";
@@ -17,12 +17,26 @@ interface AnalyzeDialogProps {
   onComplete: () => void;
 }
 
+const LOADING_STAGES = [
+  { pct: 10, labelEn: "Parsing log data...", labelTh: "กำลังอ่าน Log..." },
+  { pct: 30, labelEn: "Searching knowledge base...", labelTh: "ค้นหาข้อมูล..." },
+  { pct: 55, labelEn: "Querying web sources...", labelTh: "ดึงข้อมูลจากอินเทอร์เน็ต..." },
+  { pct: 75, labelEn: "Analyzing with AI...", labelTh: "วิเคราะห์ด้วย AI..." },
+  { pct: 90, labelEn: "Building solution...", labelTh: "สร้างวิธีแก้ไข..." },
+  { pct: 98, labelEn: "Almost done...", labelTh: "เกือบเสร็จแล้ว..." },
+];
+
 export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadPct, setLoadPct] = useState(0);
+  const [loadStage, setLoadStage] = useState("");
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [pastedImage, setPastedImage] = useState<File | null>(null);
   const [tab, setTab] = useState("text");
+  const loadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
   const lang = settings.language;
 
   useEffect(() => {
@@ -48,8 +62,38 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
     return () => window.removeEventListener("paste", handlePaste as EventListener);
   }, [open, report]);
 
+  const startLoadingProgress = () => {
+    setLoadPct(0);
+    setElapsedSec(0);
+    startTimeRef.current = Date.now();
+    let stageIdx = 0;
+    setLoadStage(lang === 'th' ? LOADING_STAGES[0].labelTh : LOADING_STAGES[0].labelEn);
+    setLoadPct(LOADING_STAGES[0].pct);
+    loadTimerRef.current = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      setElapsedSec(elapsed);
+      const nextIdx = Math.min(stageIdx + 1, LOADING_STAGES.length - 1);
+      if (nextIdx !== stageIdx) {
+        stageIdx = nextIdx;
+        const stage = LOADING_STAGES[stageIdx];
+        setLoadPct(stage.pct);
+        setLoadStage(lang === 'th' ? stage.labelTh : stage.labelEn);
+      }
+    }, 2500);
+  };
+
+  const stopLoadingProgress = () => {
+    if (loadTimerRef.current) {
+      clearInterval(loadTimerRef.current);
+      loadTimerRef.current = null;
+    }
+    setLoadPct(100);
+    setLoadStage(lang === 'th' ? 'เสร็จสิ้น!' : 'Done!');
+  };
+
   const handleAnalyze = async () => {
     setLoading(true);
+    startLoadingProgress();
     try {
       const formData = new FormData();
       const textVal = (document.getElementById("event-text") as HTMLTextAreaElement)?.value;
@@ -57,7 +101,7 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
       const fileInput = document.getElementById("file-upload") as HTMLInputElement;
 
       if (textVal) formData.append("text", textVal);
-      
+
       if (pastedImage) {
         formData.append("file", pastedImage);
       } else if (imageInput?.files?.[0]) {
@@ -67,9 +111,11 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
       }
 
       const data = await analyzeLog(settings, formData);
+      stopLoadingProgress();
       setReport(data);
       onComplete();
     } catch {
+      stopLoadingProgress();
       alert(t(lang, "backendError"));
     } finally {
       setLoading(false);
@@ -102,11 +148,53 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
 
         {!report ? (
           <div className="mt-4 w-full">
+            {loading ? (
+              /* ─────────── Loading Screen ─────────── */
+              <div className="flex flex-col items-center justify-center py-12 gap-6">
+                <div className="relative w-28 h-28">
+                  <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="44" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+                    <circle
+                      cx="50" cy="50" r="44" fill="none"
+                      stroke="#0078d4" strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 44}`}
+                      strokeDashoffset={`${2 * Math.PI * 44 * (1 - loadPct / 100)}`}
+                      style={{ transition: 'stroke-dashoffset 1s ease' }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-[#0078d4]">{loadPct}%</span>
+                  </div>
+                </div>
+                <div className="text-center space-y-1">
+                  <p className="text-base font-semibold text-gray-700 dark:text-gray-200 animate-pulse">{loadStage}</p>
+                  <p className="text-sm text-gray-400">
+                    {lang === 'th' ? `ผ่านไปแล้ว ${elapsedSec} วินาที` : `Elapsed: ${elapsedSec}s`}
+                  </p>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-[#0078d4] h-2 rounded-full transition-all duration-1000"
+                    style={{ width: `${loadPct}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400">
+                  {lang === 'th' ? '⚠️ อาจใช้เวลา 15–60 วินาที ขึ้นอยู่กับความซับซ้อนของ Log' : '⚠️ This may take 15–60 seconds depending on log complexity'}
+                </p>
+              </div>
+            ) : (
             <Tabs value={tab} onValueChange={setTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3 mb-4 bg-gray-100 dark:bg-gray-900">
-                <TabsTrigger value="text">{t(lang, "tabText")}</TabsTrigger>
-                <TabsTrigger value="image">{t(lang, "tabImage")}</TabsTrigger>
-                <TabsTrigger value="file">{t(lang, "tabFile")}</TabsTrigger>
+                <TabsTrigger value="text" className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" />{t(lang, "tabText")}
+                </TabsTrigger>
+                <TabsTrigger value="image" className="flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5" />{t(lang, "tabImage")}
+                </TabsTrigger>
+                <TabsTrigger value="file" className="flex items-center gap-1.5">
+                  <Code className="w-3.5 h-3.5" />{t(lang, "tabFile")}
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="text">
                 <Textarea
@@ -119,17 +207,35 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
                 {pastedImage ? (
                   <div className="relative border-2 border-dashed border-[#0078d4] rounded-lg p-4 flex flex-col items-center justify-center space-y-4">
                     <img src={URL.createObjectURL(pastedImage)} alt="Pasted" className="max-h-[200px] object-contain rounded-md" />
+                    <p className="text-xs text-gray-500">{pastedImage.name || 'pasted-image'}</p>
                     <div className="flex gap-2">
-                       <Button variant="outline" size="sm" onClick={() => setPastedImage(null)}>
-                         {t(lang, "clearImage") || "Clear Image"}
-                       </Button>
+                      <Button variant="outline" size="sm" onClick={() => setPastedImage(null)}>
+                        {t(lang, "clearImage") || "Clear Image"}
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <label htmlFor="image-upload" className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg p-10 flex flex-col items-center justify-center text-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer block w-full">
+                  <label
+                    htmlFor="image-upload"
+                    className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg p-10 flex flex-col items-center justify-center text-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer block w-full"
+                    onPaste={(e) => {
+                      const items = e.clipboardData?.items;
+                      if (!items) return;
+                      for (let i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf('image') !== -1) {
+                          const f = items[i].getAsFile();
+                          if (f) { setPastedImage(f); e.preventDefault(); }
+                          break;
+                        }
+                      }
+                    }}
+                  >
                     <UploadCloud className="w-8 h-8 text-gray-400" />
                     <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{t(lang, "uploadImage")}</p>
-                    <p className="text-xs text-gray-400">{t(lang, "uploadImageHint") || "Or press Ctrl+V to paste"}</p>
+                    <p className="text-xs text-[#0078d4] font-medium">
+                      📋 {lang === 'th' ? 'กด Ctrl+V เพื่อวางรูปจาก Excel / Screenshot ได้เลย!' : 'Press Ctrl+V to paste from Excel / Screenshot!'}
+                    </p>
+                    <p className="text-xs text-gray-400">PNG, JPG, BMP accepted</p>
                     <Input id="image-upload" type="file" accept="image/*" className="hidden" onChange={(e) => {
                       if (e.target.files?.[0]) setPastedImage(e.target.files[0]);
                     }} />
@@ -140,20 +246,24 @@ export function AnalyzeDialog({ settings, onComplete }: AnalyzeDialogProps) {
                 <label htmlFor="file-upload" className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg p-10 flex flex-col items-center justify-center text-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer block w-full">
                   <Code className="w-8 h-8 text-gray-400" />
                   <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{t(lang, "uploadFile")}</p>
-                  <p className="text-xs text-gray-400">{t(lang, "uploadFileHint")}</p>
-                  <Input id="file-upload" type="file" accept=".evtx,.xml" className="hidden" />
+                  <p className="text-xs text-gray-400">.evtx, .xml, .txt, .csv, .log</p>
+                  <Input id="file-upload" type="file" accept=".evtx,.xml,.txt,.csv,.log" className="hidden" />
                 </label>
               </TabsContent>
             </Tabs>
-            <Button onClick={handleAnalyze} className="w-full bg-[#0078d4] hover:bg-[#006cbd]" disabled={loading}>
-              {loading ? t(lang, "searching") : t(lang, "searchAnalyze")}
+            )}
+            {!loading && (
+            <Button onClick={handleAnalyze} className="w-full bg-[#0078d4] hover:bg-[#006cbd] mt-4" disabled={loading}>
+              {t(lang, "searchAnalyze")}
             </Button>
+            )}
           </div>
         ) : (
           <AnalysisResult
             report={report}
             settings={settings}
             language={lang}
+            sourceImage={pastedImage}
             onAnalyzeAnother={() => { setReport(null); setPastedImage(null); setTab("text"); }}
           />
         )}

@@ -337,9 +337,20 @@ def _build_from_gemini(
     api_key: str,
     rag_context: str = ""
 ) -> SolutionSummary | None:
-    prompt = f"""You are an expert Windows Server Administrator and SOC Analyst.
-Analyze Windows Event ID {event_id} from {provider}.
-Faulting App: {faulting_app}
+    is_fortinet = "FortiGate" in provider or "fortinet" in provider.lower()
+    system_context = (
+        "You are an expert Fortinet/FortiGate Firewall Administrator and Network Security Engineer."
+        if is_fortinet else
+        "You are an expert Windows Server Administrator and SOC Analyst."
+    )
+    log_type_hint = (
+        "\nThis is a Fortinet FortiGate firewall log. Focus on: traffic policy decisions, "
+        "IPS/UTM events, blocked connections, threat signatures, and network security recommendations."
+        if is_fortinet else ""
+    )
+    prompt = f"""{system_context}
+Analyze {'Fortinet FortiGate log' if is_fortinet else f'Windows Event ID {event_id} from {provider}'}.
+{'Log ID: ' + event_id if is_fortinet else 'Faulting App: ' + faulting_app}{log_type_hint}
 
 Internal Knowledge Base (Past Solved Issues):
 {rag_context}

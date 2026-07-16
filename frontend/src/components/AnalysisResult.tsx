@@ -13,6 +13,7 @@ interface AnalysisResultProps {
   report: AnalysisReport;
   settings: AppSettings;
   language: AppLanguage;
+  sourceImage?: File | null;
   onAnalyzeAnother: () => void;
 }
 
@@ -95,7 +96,7 @@ function downloadJSON(report: AnalysisReport) {
   URL.revokeObjectURL(url);
 }
 
-export function AnalysisResult({ report, settings, language, onAnalyzeAnother }: AnalysisResultProps) {
+export function AnalysisResult({ report, settings, language, sourceImage, onAnalyzeAnother }: AnalysisResultProps) {
   const meta = report.eventMetadata;
   const [feedbackSent, setFeedbackSent] = useState<number | null>(null);
 
@@ -112,6 +113,19 @@ export function AnalysisResult({ report, settings, language, onAnalyzeAnother }:
 
   return (
     <div className="space-y-4 w-full min-w-0">
+      {/* Image preview from upload */}
+      {sourceImage && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+          <p className="text-xs text-gray-500 dark:text-gray-400 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            📎 {language === 'th' ? 'รูปที่ส่งวิเคราะห์:' : 'Submitted image:'} <span className="font-medium">{sourceImage.name || 'pasted-image'}</span>
+          </p>
+          <img
+            src={URL.createObjectURL(sourceImage)}
+            alt="Submitted log"
+            className="max-h-48 w-full object-contain bg-white dark:bg-gray-950 p-2"
+          />
+        </div>
+      )}
       <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-[#0078d4] p-4 rounded-md break-words w-full">
         <h3 className="font-semibold text-blue-800 dark:text-blue-200 break-words">
           {t(language, "eventId")}: {report.eventId} - {report.provider}

@@ -102,11 +102,17 @@ export function HistoryList({
                     By: {item.username}
                   </span>
                 )}
-                {item.feedback_by && (
-                  <span className={`text-xs ${item.feedback_score === -1 ? 'text-red-500 dark:text-red-400' : 'text-blue-500 dark:text-blue-400'}`}>
-                    {item.feedback_score === -1 ? `Rejected by: ${item.feedback_by} 👎` : `Verified by: ${item.feedback_by} 👍`}
-                  </span>
-                )}
+                {item.feedback_by && (() => {
+                  const score = item.feedback_score;
+                  const icon = score === 1 ? '👍' : score === -1 ? '👎' : '👍';
+                  const label = score === -1 ? `Rejected by: ${item.feedback_by}` : `Verified by: ${item.feedback_by}`;
+                  const colorClass = score === -1 ? 'text-red-500 dark:text-red-400' : 'text-blue-500 dark:text-blue-400';
+                  return (
+                    <span className={`text-xs ${colorClass}`}>
+                      {label} {icon}
+                    </span>
+                  );
+                })()}
                 <button
                   onClick={(e) => onDelete(item.id, e)}
                   className="text-red-400 hover:text-red-600 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed"

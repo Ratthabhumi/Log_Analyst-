@@ -58,6 +58,25 @@ def _process_upload(content: bytes, filename: str, content_type: str | None) -> 
         except Exception as e:
             raise ValueError(f"XML Parse Failed: {e}")
 
+    if lower_name.endswith(".csv"):
+        try:
+            import csv, io as _io
+            text_raw = content.decode("utf-8", errors="ignore")
+            reader = csv.DictReader(_io.StringIO(text_raw))
+            rows = list(reader)
+            if rows:
+                # Convert first 50 rows to readable text
+                lines = []
+                for i, row in enumerate(rows[:50]):
+                    line = "  ".join(f"{k}: {v}" for k, v in row.items() if v)
+                    lines.append(line)
+                return "\n".join(lines), f"Parsed CSV file: {filename} ({len(rows)} rows)"
+            # Fallback: plain text
+            return text_raw, f"Uploaded CSV file: {filename}"
+        except Exception:
+            pass
+
+    # .txt, .log, and any other plaintext files
     text = content.decode("utf-8", errors="ignore")
     return text, f"Uploaded file: {filename}"
 
