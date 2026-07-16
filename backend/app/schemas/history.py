@@ -25,5 +25,6 @@ class HistoryResponse(HistoryBase):
     created_at: datetime
     username: Optional[str] = None
     feedback_by: Optional[str] = None
+    feedback_score: Optional[int] = None
 
     model_config = {"from_attributes": True}

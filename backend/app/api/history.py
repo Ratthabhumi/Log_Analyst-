@@ -36,6 +36,7 @@ def get_all_history(
             "created_at": record.created_at,
             "username": record.username,
             "feedback_by": record.feedback_by,
+            "feedback_score": record.feedback_score,
         })
     return results
 
